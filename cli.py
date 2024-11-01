@@ -11,8 +11,8 @@ app = Flask(__name__)
 
 
 # Deine API-Schlüssel vom Testnet
-api_key = 'BibAXBReE7i0i6D9Mbahtztl58HTEZtBCgWhZwoVntopKuDOVF6F9Z3diy3jsfjW'    #ApiKey
-api_secret = 'uhNe1bOe640SNtkhfAt4RTvwfkK4z46cfPReq785Vlr0nX9SpF51vnJh7gDEKACE' #Secret
+api_key = 'apikey'    #ApiKey
+api_secret = 'secretkey' #Secret
 
 # Verbinde mit dem Binance Testnet
 client = Client(api_key, api_secret, testnet=True)
