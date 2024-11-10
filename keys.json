@@ -1,0 +1,6 @@
+{
+    "binance_api_key": "your key here",
+    "binance_secret_key": "your key here",
+    "alpaca_api_key": "your key here",
+    "alpaca_secret_key": "your key here"
+}
