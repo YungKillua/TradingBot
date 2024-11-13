@@ -1,3 +1,4 @@
 prompt_toolkit==3.0.38
 Flask==2.3.3
 binance==5.1.0
+alpaca-py==0.32.0
