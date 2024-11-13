@@ -1,12 +1,15 @@
-from prompt_toolkit import prompt
-from prompt_toolkit.completion import WordCompleter
+from InquirerPy import inquirer
 from flask import Flask, request, jsonify
 import threading
 from binance.client import Client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 from binance.enums import *
-import json
-import os
+from alpaca.trading.client import TradingClient
+from alpaca.trading.enums import OrderSide, OrderType, TimeInForce
+from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopOrderRequest
+from alpaca.trading.models import Order
+import json, os, time
+
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -24,9 +27,11 @@ with open('keys.json', 'r') as keys:
 # Verbinde mit dem Binance Testnet
 client = Client(binance_api_key, binance_secret_key, testnet=True)
 
+#AlpacaClient Testnet
+trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
 
-commands = ['Option 1', 'Option 2', 'Option 3', 'Exit']
-completer = WordCompleter(commands, ignore_case=True)
+
+
 received_data = None
 
 status = {'Binance': False, 'Alpaca': False}
@@ -42,68 +47,49 @@ def main():
     print("   ██║   ██║  ██║██║  ██║██████╔╝██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝   ██║")   
     print("   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝    ╚═╝   ")
     while True:
-        # Eingabeaufforderung mit Autovervollständigung
-        print('1. Run Bot')
-        print('2. Get Binance Balance')
-        print('3. Change Api-Keys etc.')
-        print('4. Modus setzen')
-        print('exit. Close Bot')
-        print('')
-        user_input = prompt('Wähle eine Option: ', completer=completer)
         
-        if user_input == '1':
+        
+        # Hauptmenü anzeigen und Auswahl treffen
+        choice = inquirer.select(
+            message="Wähle eine Option:",
+            choices=[
+                "1. Run Bot",
+                "2. Get Binance Balance",
+                "3. Change API-Keys",
+                "4. Modus setzen",
+                "Exit"
+            ],
+        ).execute()
+
+        # Auswahl abfragen und entsprechende Aktion ausführen
+        if choice == "1. Run Bot":
             start_bot()
-    
-            break
-        elif user_input == '2':
-            print("A for all Balance")
-            print('U for USD')
-            print('B for BTC')
-            print('E for ETH')
-            print('S for SOL')
-            print('M for MainMenu')
-            user_input = prompt('Wähle eine Option: ', completer=completer)
-            if user_input == 'A':
-                connect_to_binance(guthabenabfrage = True)
-                print('-----------------------------------')
-            if user_input == 'F':
-                get_futures_balance()
-                print('-----------------------------------')
-            elif user_input == "u" or 'U':
-                connect_to_binance(guthabenabfrage = 'u')
-                print('-----------------------------------')
-            elif user_input == 'b' or 'B':
-                connect_to_binance(guthabenabfrage = 'b')
-                print('-----------------------------------')
-            elif user_input == 'e' or 'E':
-                connect_to_binance(guthabenabfrage = 'e')
-                print('-----------------------------------')
-            elif user_input == 's' or 'S':
-                connect_to_binance(guthabenabfrage = 's')
-                print('-----------------------------------')
-            elif user_input == 'm' or 'M':
-                print('-----------------------------------')
-            
-        elif user_input == '3':
-            print('Change your Api-Keys')
-            break
-        elif user_input == '4':
-            print('A for Alpaca')
-            print('B for Binance')
-            uin = input()
-            if uin == 'a' or uin == 'A':
-                set_status('Alpaca')
-                refresh_status()
-            elif uin == 'b' or uin == 'B':
+        elif choice == "2. Get Binance Balance":
+            connect_to_binance(guthabenabfrage = True)
+        elif choice == "3. Change API-Keys":
+            change_apikeys()
+        elif choice == "4. Modus setzen":
+            choice = inquirer.select(
+                message = 'Modus waehlen:',
+                choices = [
+                    '1. Binance',
+                    '2. Alpaca'
+                    ],
+            ).execute()
+            if choice == '1. Binance':
                 set_status('Binance')
                 refresh_status()
-            print(f'Modus auf {botstatus} gesetzt')
-            print('-----------------------------------')
-        elif user_input.lower() == 'exit':
+                print(f'Modus wurde auf {botstatus} gesetzt')
+            elif choice == '2. Alpaca':
+                set_status('Alpaca')
+                refresh_status()
+                print(f'Modus wurde auf {botstatus} gesetzt')
+        elif choice == "Exit":
             print("Programm wird beendet.")
             break
         else:
             print("Ungültige Auswahl, bitte erneut versuchen.")
+        print('---------------------------')
 
 def set_status(aktiv):
     global status
@@ -280,12 +266,11 @@ def binance_open_short_position(coin, stoploss, price):
         print(f'create sell order for {coin}')
         print('Berechne Order Details...')
         usdt_balance = float(client.get_asset_balance(asset='USDT')['free'])
-        print(usdt_balance)
         risk_amount_usdt = usdt_balance * 0.05
-        print(risk_amount_usdt)
         coin_amount = risk_amount_usdt / (stoploss - price)
         if coin_amount * price > usdt_balance:
             coin_amount = usdt_balance / price
+
         stoplossdistance = price - stoploss
         takeprofit = price - (stoplossdistance * 1.5)
         print(coin_amount)
@@ -295,11 +280,11 @@ def binance_open_short_position(coin, stoploss, price):
         takeprofit = round(takeprofit, 2)
 
         #Debugging
-        print(coin)
+        '''print(coin)
         print(roundcoin_amount)
         print(takeprofit)
         print(stoploss)
-        print(stoploss+10)
+        print(stoploss+10)'''
 
         try:
             response = client.futures_create_order(symbol = coin, 
@@ -340,13 +325,115 @@ def binance_open_short_position(coin, stoploss, price):
         except Exception as e:
             print('Fehler beim Erstellen der OCO Buy Order', str(e))
 
-def alpaca_open_long_position():
-    return
+def alpaca_open_long_position(coin, stoploss, price):
+    account = trading_client.get_account()
+    usd_balance = float(account.cash)
+    risk_amount_usd = usd_balance * 0.05
+    coin_amount = risk_amount_usd / (price - stoploss)
+    if coin_amount * price > usd_balance:
+        coin_amount = usd_balance / price
+    
+    stoploss_distance = price - stoploss
+    takeprofit = price + (stoploss_distance * 1.5)
 
-def alpaca_open_short_position():
-    return
+    round_coin_amount = round(coin_amount, 6)
+    takeprofit = round(takeprofit, 2)
+
+    try:
+        # Create a market buy order
+        market_order_data = MarketOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.BUY,
+            time_in_force=TimeInForce.GTC
+        )
+        market_order = trading_client.submit_order(market_order_data)
+        print("Buy order successfully created", market_order)
+
+        # Wait for the buy order to fill
+        time.sleep(2)  # Optional: add checks for actual order fill status here
+
+        # Create a take profit limit order
+        takeprofit_order_data = LimitOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.SELL,
+            limit_price=takeprofit,
+            time_in_force=TimeInForce.GTC
+        )
+        takeprofit_order = trading_client.submit_order(takeprofit_order_data)
+        print("Take profit order successfully created", takeprofit_order)
+        
+        # Create a stop loss order
+        stoploss_order_data = StopOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.SELL,
+            stop_price=stoploss,
+            time_in_force=TimeInForce.GTC
+        )
+        stoploss_order = trading_client.submit_order(stoploss_order_data)
+        print("Stop loss order successfully created", stoploss_order)
+
+    except Exception as e:
+        print("Error creating order on Alpaca:", str(e))
+
+    
+
+def alpaca_open_short_position(coin, stoploss, price):
+    account = trading_client.get_account()
+    usd_balance = float(account.cash)
+    risk_amount_usd = usd_balance * 0.05
+    coin_amount = risk_amount_usd / (stoploss - price)
+    if coin_amount * price > usd_balance:
+        coin_amount = usd_balance / price
+
+    stoplossdistance = price - stoploss
+    takeprofit = price - (stoplossdistance * 1.5)
+
+    round_coin_amount = round(coin_amount, 6)
+    takeprofit = round(takeprofit, 2)
+
+    try:
+        # Create a market sell order
+        market_order_data = MarketOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.SELL,
+            time_in_force=TimeInForce.GTC
+        )
+        market_order = trading_client.submit_order(market_order_data)
+        print("Sell order successfully created", market_order)
+
+        # Wait for the buy order to fill
+        time.sleep(2)  # Optional: add checks for actual order fill status here
+
+        # Create a take profit limit order
+        takeprofit_order_data = LimitOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.BUY,
+            limit_price=takeprofit,
+            time_in_force=TimeInForce.GTC
+        )
+        takeprofit_order = trading_client.submit_order(takeprofit_order_data)
+        print("Take profit order successfully created", takeprofit_order)
+
+        # Create a stop loss order
+        stoploss_order_data = StopOrderRequest(
+            symbol=coin,
+            qty=round_coin_amount,
+            side=OrderSide.BUY,
+            stop_price=stoploss,
+            time_in_force=TimeInForce.GTC
+        )
+        stoploss_order = trading_client.submit_order(stoploss_order_data)
+        print("Stop loss order successfully created", stoploss_order)
+
+    except Exception as e:
+        print("Error creating order on Alpaca:", str(e))
+    
          
-
 def start_server():
     app.run(host='0.0.0.0', port=80)
 
@@ -371,12 +458,12 @@ def process_data():
             binance_open_short_position(coin = chart, stoploss = ema200, price = price)
         #Alpaca
         if botstatus == 'alpaca' and alert == 'Buy Signal':
-            alpaca_open_long_position()
+            alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
 
         if botstatus == 'alpaca' and alert == 'Sell Signal':
-            alpaca_open_short_position()
+            alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
         
-        # Hier kannst du mit den empfangenen Daten weiterarbeiten
+        # Hier mit den empfangenen Daten weiterarbeiten
     else:
         print("Keine Daten empfangen")
 
