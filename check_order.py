@@ -78,7 +78,7 @@ def check_price_alpaca(coin, tp, order_type):
             # must use symbol to access even though it is single symbol
             askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
             bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
-            print(f'Askprice is at {colored(askprice, 'light_red')}')
+            print(f'Askprice is at {askprice}')
 
         except Exception as e:
             print(f"Error fetching data: {e}")
