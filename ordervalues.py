@@ -65,14 +65,15 @@ def read_value(file_path):
         
         
 # Beispiel
-file_path = "counter.json"
+
+#file_path = "counter.json"
 
 # Erstelle die Datei mit dem initialen Wert, falls sie noch nicht existiert
-create_initial_file(file_path)
+#create_initial_file(file_path)
 
 # Beispielaufrufe der Funktionen
-increase_value(file_path)  # Erhöht den Wert
-decrease_value(file_path)  # Verringert den Wert
-reset_value(file_path)     # Setzt den Wert auf 0
-read_value(file_path)      # Liest den Wert aus
+#increase_value(file_path)  # Erhöht den Wert
+#decrease_value(file_path)  # Verringert den Wert
+#reset_value(file_path)     # Setzt den Wert auf 0
+#read_value(file_path)      # Liest den Wert aus
 
