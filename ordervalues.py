@@ -54,6 +54,16 @@ def create_initial_file(file_path):
     with open(file_path, 'w') as file:
         json.dump(data, file)
 
+def read_value(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            return data['value']
+
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Fehler beim Laden der Datei.")
+        
+        
 # Beispiel
 file_path = "counter.json"
 
@@ -64,4 +74,5 @@ create_initial_file(file_path)
 increase_value(file_path)  # Erhöht den Wert
 decrease_value(file_path)  # Verringert den Wert
 reset_value(file_path)     # Setzt den Wert auf 0
+read_value(file_path)      # Liest den Wert aus
 
