@@ -11,7 +11,7 @@ from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopL
 from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
-from ordervalues import increase_value
+from ordervalues import increase_value, reset_value, read_value
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -40,6 +40,8 @@ received_data = None
 
 status = {'Binance': False, 'Alpaca': False}
 botstatus = None
+
+reset_value(file_path)
 
 
 
@@ -468,6 +470,10 @@ def run_server_in_thread():
     server_thread.start()
     return server_thread
 
+def get_os():
+    systemos = sys.platform
+    return systemos
+
 def create_subprocess(order, tp, order_type):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     #python_executable = sys.executable
@@ -476,7 +482,13 @@ def create_subprocess(order, tp, order_type):
     var2 = order 
     var3 = tp
     var4 = order_type
-    subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
+    
+    systemos = get_os()
+    
+    if systemos == 'win32':
+        subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
+    elif systemos == 'linux':
+        subprocess.Popen(f'python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}', shell=True)
 
 def process_data():
     global received_data
@@ -486,21 +498,26 @@ def process_data():
         alert = received_data.get('alert')
         price = received_data.get('price')
         ema200 = received_data.get('ema200')
-        #Binance
-        if botstatus == 'binance' and alert == 'Buy Signal':
-            binance_open_long_position(coin = chart, stoploss = ema200, price = price)
-            
-        if botstatus == 'binance' and alert == 'Sell Signal':
-            binance_open_short_position(coin = chart, stoploss = ema200, price = price)
-        #Alpaca
-        if botstatus == 'Alpaca' and alert == 'Buy Signal':
-            takeprofit = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
-            create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
-            increase_value(file_path)
-        if botstatus == 'Alpaca' and alert == 'Sell Signal':
-            alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
         
-        # Hier mit den empfangenen Daten weiterarbeiten
+        orders = read_value(file_path)
+        if orders < 4 :
+        
+            #Binance
+            if botstatus == 'binance' and alert == 'Buy Signal':
+                binance_open_long_position(coin = chart, stoploss = ema200, price = price)
+            
+            if botstatus == 'binance' and alert == 'Sell Signal':
+                binance_open_short_position(coin = chart, stoploss = ema200, price = price)
+            #Alpaca
+            if botstatus == 'Alpaca' and alert == 'Buy Signal':
+                takeprofit = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
+                create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
+                increase_value(file_path)
+            if botstatus == 'Alpaca' and alert == 'Sell Signal':
+                alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
+        else:
+            print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
+            
     else:
         print("Keine Daten empfangen")
 
