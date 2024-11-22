@@ -489,7 +489,7 @@ def create_subprocess(order, tp, order_type):
     if systemos == 'win32':
         subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
     elif systemos == 'linux':
-        lxcommand = f'lxterminal -e "python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"'
+        lxcommand = f'lxterminal -H "python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"'
         subprocess.Popen(lxcommand, shell = True)
 
 def process_data():
