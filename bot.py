@@ -489,10 +489,11 @@ def create_subprocess(order, tp, order_type):
     if systemos == 'win32':
         subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
     elif systemos == 'linux':
-        venv = '\'source {os.path.join("BotEnv", "bin", "activate")}'
-        
-        lxcommand = f'lxterminal -e "bash -c {venv} && python3 {os.path.join(script_dir, script)} {var1} {var2}; exec bash\'"'
-        subprocess.Popen(lxcommand, shell = True)
+        venv_path = "/home/flosse/Documents/TradingBot/BotEnv"
+        lxcommand = f'''
+                    bash -c "source {os.path.join(venv_path, 'bin', 'activate')} && python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}; exec bash"
+                    '''
+        subprocess.Popen(f'lxterminal -e "{lxcommand}"', shell=True)
 
 def process_data():
     global received_data
