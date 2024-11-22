@@ -1,4 +1,4 @@
-Clone with git clone https://github.com/YungKillua/TradingBot
+Clone with $ git clone https://github.com/YungKillua/TradingBot
 
 $ cd TradingBot 
 
