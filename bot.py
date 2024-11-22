@@ -484,11 +484,12 @@ def create_subprocess(order, tp, order_type):
     var4 = order_type
     
     systemos = get_os()
+    print(f'Os ist {systemos}')
     
     if systemos == 'win32':
         subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
     elif systemos == 'linux':
-        subprocess.Popen(f'python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}', shell=True)
+        subprocess.Popen(f'gnome-terminal -- bash -c "python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}; exec bash"', shell=True)
 
 def process_data():
     global received_data
