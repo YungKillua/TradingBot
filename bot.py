@@ -11,6 +11,7 @@ from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopL
 from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
+from ordervalues import increase_value
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -33,7 +34,7 @@ client = Client(binance_api_key, binance_secret_key, testnet=True)
 if alpaca_api_key != '':
     trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
 
-
+file_path = 'counter.json'
 
 received_data = None
 
@@ -467,14 +468,14 @@ def run_server_in_thread():
     server_thread.start()
     return server_thread
 
-def create_subprocess(order, tp, type):
+def create_subprocess(order, tp, order_type):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     #python_executable = sys.executable
     script = "check_order.py"
     var1 = botstatus
     var2 = order 
     var3 = tp
-    var4 = type
+    var4 = order_type
     subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
 
 def process_data():
@@ -494,7 +495,8 @@ def process_data():
         #Alpaca
         if botstatus == 'Alpaca' and alert == 'Buy Signal':
             takeprofit = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
-            create_subprocess(order = chart, tp = takeprofit, type = 'Long')
+            create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
+            increase_value(file_path)
         if botstatus == 'Alpaca' and alert == 'Sell Signal':
             alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
         
