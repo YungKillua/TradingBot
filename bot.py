@@ -489,11 +489,11 @@ def create_subprocess(order, tp, order_type):
     if systemos == 'win32':
         subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
     elif systemos == 'linux':
-        venv_path = "/home/flosse/Documents/TradingBot/BotEnv"
+        venv_path = os.path.join(script_dir, "BotEnv")
         command = f"source {os.path.join(venv_path, 'bin', 'activate')} && python3 {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"
 
         subprocess.Popen(
-            f'lxterminal -t "My Script" -e bash -c "{command}; exec bash"', 
+            f'lxterminal -t "Order Monitor" -e bash -c "{command}; exec bash"', 
             shell=True
             )
 
