@@ -1,8 +1,12 @@
+from alpaca.data.historical import CryptoHistoricalDataClient
+from alpaca.data.requests import CryptoLatestQuoteRequest
+from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, OrderSide, TimeInForce
 from binance.client import Client
 import sys, time, json
 from termcolor import colored
+from ordervalues import decrease_value
 
 
 
@@ -14,11 +18,16 @@ with open('keys.json', 'r') as keys:
     alpaca_secret_key = keys['alpaca_secret_key']
 
 # Verbinde mit dem Binance Testnet
-client = Client(binance_api_key, binance_secret_key, testnet=True)
+bclient = Client(binance_api_key, binance_secret_key, testnet=True)
 
 #AlpacaClient Testnet
 if alpaca_api_key != '':
     trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
+    
+# No keys required for crypto data
+aclient = CryptoHistoricalDataClient()
+
+file_path = "counter.json"
     
 print(colored('Order Monitor', 'light_magenta'))
     
@@ -42,34 +51,58 @@ if len(sys.argv) > 3:
 if len(sys.argv) > 4:
     var4 = sys.argv[4]
     #print(var4)
-    type = var4
+    order_type = var4
 
 else:
     print("Argument fehlt.")
+
 
 print('Variablen erfolgreich uebergeben')
 print(f'Botstatus auf {botstatus}')
 print(f'Coin ist {coin}')
 print(f'TakeProfit ist {tp}')
-print(f'Order Type ist {type}')
+print(f'Order Type ist {order_type}')
     
-def check_price_alpaca(coin, tp, type):
+def check_price_alpaca(coin, tp, order_type):
+    
     while True:
+        
+        try:
+            # Creating request object
+            request_params = CryptoLatestQuoteRequest(
+            symbol_or_symbols=f'{coin[:3]}/USD'
+            )
+            # Fetch the latest bar (price data)
+            latest_quote = aclient.get_crypto_latest_quote(request_params)
+
+            # must use symbol to access even though it is single symbol
+            askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
+            bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
+            print(f'Askprice is at {colored(askprice, 'light_red')}')
+
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+
+        #Get Asset Balance
         asset = trading_client.get_open_position(coin)
-        price = asset.current_price
-        qty = asset.qty
-        print(f'Checking...  Price is at{price}')
-        if type == 'Long':
-            if price >= tp:
-                close_alpaca(coin = coin, qty = qty)
+        amount = asset.qty
+        
+        tp = float(tp)
+        
+        if order_type == 'Long':
+            if askprice >= tp:
+                close_alpaca(coin = coin, qty = amount)
+                decrease_value(file_path)
                 print(colored('Trade erfolgreich', 'light_green'))
                 break
-        elif type == 'Short':
-            if price <= tp:
-                close_alpaca(coin = coin, qty = qty)
+        elif order_type == 'Short':
+            if askprice <= tp:
+                close_alpaca(coin = coin, qty = amount)
+                decrease_value(file_path)
                 print(colored('Trade erfolgreich', 'light_green'))
                 break
-        time.sleep(10)
+        # Wait before fetching again
+        time.sleep(200)
     
 
 def close_alpaca(coin, qty):
@@ -93,7 +126,7 @@ def check_price_binance():
     
 if  botstatus == 'Alpaca':
 
-    check_price_alpaca(coin = coin, tp = tp, type = type)
+    check_price_alpaca(coin = coin, tp = tp, order_type = order_type)
     
 if botstatus == 'Binance':
     check_price_binance()
