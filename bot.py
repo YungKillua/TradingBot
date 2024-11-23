@@ -397,11 +397,12 @@ def alpaca_open_long_position(coin, stoploss, price):
         )
         stoploss_order = trading_client.submit_order(stoploss_order_data)
         print(colored("Stop loss order successfully created", 'cyan'), stoploss_order)
-
+        return takeprofit, True
+    
     except Exception as e:
         print(colored("Error creating order on Alpaca:",'green'), str(e))
-        
-    return takeprofit
+        return takeprofit, False
+    
 
     
 
@@ -518,11 +519,17 @@ def process_data():
                 binance_open_short_position(coin = chart, stoploss = ema200, price = price)
             #Alpaca
             if botstatus == 'Alpaca' and alert == 'Buy Signal':
-                takeprofit = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
-                create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
-                increase_value(file_path)
+                long = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
+                takeprofit = long[0]
+                sucess = long[1]
+                if sucess == True:
+                    create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
+                    increase_value(file_path)
+                else:
+                    print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             if botstatus == 'Alpaca' and alert == 'Sell Signal':
-                alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
+                #alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)\
+                return
         else:
             print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
             
