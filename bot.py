@@ -505,8 +505,8 @@ def process_data():
         print(f"Verarbeite Daten: {received_data}")
         chart = received_data.get('chart')
         alert = received_data.get('alert')
-        price = received_data.get('price')
-        ema200 = received_data.get('ema200')
+        price = float(received_data.get('price'))
+        ema200 = float(received_data.get('ema200'))
         
         orders = read_value(file_path)
         if orders < 4 :
