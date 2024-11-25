@@ -16,6 +16,9 @@ from ordervalues import increase_value, reset_value, read_value
 # Definiere mögliche Optionen
 app = Flask(__name__)
 
+systemos = sys.platform
+print(f'Os ist {systemos}')
+
 
 with open('keys.json', 'r') as keys:
     keys = json.load(keys)
@@ -409,17 +412,18 @@ def alpaca_open_long_position(coin, stoploss, price):
 def alpaca_open_short_position(coin, stoploss, price):
     account = trading_client.get_account()
     usd_balance = float(account.cash)
-    risk_amount_usd = usd_balance * 0.05
+    usd_balance_4th = usd_balance/4
+    risk_amount_usd = usd_balance_4th * 0.05
     coin_amount = risk_amount_usd / (stoploss - price)
-    if coin_amount * price > usd_balance:
-        coin_amount = usd_balance / price
+    if coin_amount * price > usd_balance_4th:
+        coin_amount = (usd_balance_4th - risk_amount_usd) / price
 
-    stoplossdistance = price - stoploss
+    stoplossdistance = stoploss - price
     takeprofit = price - (stoplossdistance * 1.5)
 
     limit = stoploss * (1 - 0.01)
 
-    round_coin_amount = round(coin_amount, 6)
+    round_coin_amount = round(coin_amount, 0)
     takeprofit = round(takeprofit, 2)
 
     try:
@@ -436,16 +440,6 @@ def alpaca_open_short_position(coin, stoploss, price):
         # Wait for the buy order to fill
         time.sleep(2)  # Optional: add checks for actual order fill status here
 
-        # Create a take profit limit order
-        takeprofit_order_data = LimitOrderRequest(
-            symbol=coin,
-            qty=round_coin_amount,
-            side=OrderSide.BUY,
-            limit_price=takeprofit,
-            time_in_force=TimeInForce.GTC
-        )
-        takeprofit_order = trading_client.submit_order(takeprofit_order_data)
-        print("Take profit order successfully created", takeprofit_order)
 
         # Create a stop loss order
         stoploss_order_data = StopLimitOrderRequest(
@@ -464,16 +458,12 @@ def alpaca_open_short_position(coin, stoploss, price):
     
          
 def start_server():
-    app.run(host='::', port=80)
+    app.run(host='::', port=443)
 
 def run_server_in_thread():
     server_thread = threading.Thread(target=start_server)
     server_thread.start()
     return server_thread
-
-def get_os():
-    systemos = sys.platform
-    return systemos
 
 def create_subprocess(order, tp, order_type):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -483,9 +473,7 @@ def create_subprocess(order, tp, order_type):
     var2 = order 
     var3 = tp
     var4 = order_type
-    
-    systemos = get_os()
-    print(f'Os ist {systemos}')
+
     
     if systemos == 'win32':
         subprocess.Popen(f'start powershell -NoExit -Command "python {os.path.join(script_dir, script)} {var1} {var2} {var3} {var4}"', shell=True)
@@ -497,7 +485,11 @@ def create_subprocess(order, tp, order_type):
             f'lxterminal -t "Order Monitor" -e bash -c "{command}; exec bash"', 
             shell=True
             )
-
+    elif systemos == 'darwin':
+        script = os.path.abspath('check_order.py')
+        command = f'python3 {script} {var1} {var2} {var3} {var4}'
+        apple_script = f'tell application "Terminal" to do script "{command}"'
+        subprocess.Popen(["osascript", "-e", apple_script], shell=False)
 
 def process_data():
     global received_data
@@ -528,7 +520,7 @@ def process_data():
                 else:
                     print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             if botstatus == 'Alpaca' and alert == 'Sell Signal':
-                #alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)\
+                #alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
                 return
         else:
             print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
