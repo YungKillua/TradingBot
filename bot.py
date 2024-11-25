@@ -41,7 +41,7 @@ file_path = 'counter.json'
 
 received_data = None
 
-status = {'Binance': False, 'Alpaca': False}
+status = {'Binance': False, 'Alpaca': False, 'ByBit': False}
 botstatus = None
 
 reset_value(file_path)
@@ -88,7 +88,8 @@ def main():
                 message = 'Modus waehlen:',
                 choices = [
                     '1. Binance',
-                    '2. Alpaca'
+                    '2. Alpaca',
+                    '3. ByBit'
                     ],
             ).execute()
             if choice == '1. Binance':
@@ -458,7 +459,7 @@ def alpaca_open_short_position(coin, stoploss, price):
     
          
 def start_server():
-    app.run(host='::', port=443)
+    app.run(host='::', port=80)
 
 def run_server_in_thread():
     server_thread = threading.Thread(target=start_server)
