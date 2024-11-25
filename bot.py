@@ -12,6 +12,7 @@ from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
 from ordervalues import increase_value, reset_value, read_value
+from telegram import Bot
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -26,6 +27,8 @@ with open('keys.json', 'r') as keys:
     binance_secret_key = keys['binance_secret_key']
     alpaca_api_key = keys['alpaca_api_key']
     alpaca_secret_key = keys['alpaca_secret_key']
+    telegram_token = keys['telegram_bot_token']
+    groupchat_id = keys['groupchat_id']
     #Debug
     #print(api_key)
     #print(secret_key)
@@ -43,6 +46,9 @@ received_data = None
 
 status = {'Binance': False, 'Alpaca': False, 'ByBit': False}
 botstatus = None
+
+#Telegram Setup
+tbot = Bot(token=telegram_token)
 
 reset_value(file_path)
 
@@ -516,6 +522,7 @@ def process_data():
                 takeprofit = long[0]
                 sucess = long[1]
                 if sucess == True:
+                    tbot.send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.')
                     create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
                     increase_value(file_path)
                 else:
