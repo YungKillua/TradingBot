@@ -7,7 +7,7 @@ from binance.client import Client
 import sys, time, json
 from termcolor import colored
 from ordervalues import decrease_value
-
+from telegram import Bot
 
 
 with open('keys.json', 'r') as keys:
@@ -16,9 +16,14 @@ with open('keys.json', 'r') as keys:
     binance_secret_key = keys['binance_secret_key']
     alpaca_api_key = keys['alpaca_api_key']
     alpaca_secret_key = keys['alpaca_secret_key']
+    telegram_token = keys['telegram_bot_token']
+    groupchat_id = keys['groupchat_id']
 
 # Verbinde mit dem Binance Testnet
 bclient = Client(binance_api_key, binance_secret_key, testnet=True)
+
+#Telegram Setup
+tbot = Bot(token=telegram_token)
 
 #AlpacaClient Testnet
 if alpaca_api_key != '':
@@ -84,6 +89,7 @@ def check_price_alpaca(coin, tp, order_type):
             else:
                 decrease_value( file_path)
                 print(colored('StopLoss wurde getriggert', 'light_red'))
+                tbot.send_message(chat_id=groupchat_id, text = f'{coin} Price is down to {askprice}! Stoploss triggered')
                 input("Drücke eine Taste, um das Fenster zu schließen...")
         except Exception as e:
             print(f"Error fetching data: {e}")
@@ -99,6 +105,7 @@ def check_price_alpaca(coin, tp, order_type):
                 close_alpaca(coin = coin, qty = amount)
                 decrease_value(file_path)
                 print(colored('Trade erfolgreich', 'light_green'))
+                tbot.send_message(chat_id=groupchat_id, text =f'{coin} Price is up to {tp}! Takeprofit triggered')
                 break
         elif order_type == 'Short':
             if askprice <= tp:
