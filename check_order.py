@@ -68,18 +68,23 @@ def check_price_alpaca(coin, tp, order_type):
     while True:
         
         try:
-            # Creating request object
-            request_params = CryptoLatestQuoteRequest(
-            symbol_or_symbols=f'{coin[:3]}/USD'
-            )
-            # Fetch the latest bar (price data)
-            latest_quote = aclient.get_crypto_latest_quote(request_params)
+            openorder = trading_client.get_open_position(coin)
+            if openorder != None:
+                # Creating request object
+                request_params = CryptoLatestQuoteRequest(
+                symbol_or_symbols=f'{coin[:3]}/USD'
+                )
+                # Fetch the latest bar (price data)
+                latest_quote = aclient.get_crypto_latest_quote(request_params)
 
-            # must use symbol to access even though it is single symbol
-            askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
-            bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
-            print(f'Askprice is at {askprice}')
-
+                # must use symbol to access even though it is single symbol
+                askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
+                bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
+                print(f'Askprice is at {askprice}')
+            else:
+                decrease_value( file_path)
+                print(colored('StopLoss wurde getriggert', 'light_red'))
+                input("Drücke eine Taste, um das Fenster zu schließen...")
         except Exception as e:
             print(f"Error fetching data: {e}")
 
