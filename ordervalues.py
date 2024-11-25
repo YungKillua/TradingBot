@@ -11,7 +11,7 @@ def increase_value(file_path):
 
         with open(file_path, 'w') as file:
             json.dump(data, file)  # Speichere die aktualisierten Daten zurück in die Datei
-        print(f"Neue Zahl: {data['value']}")
+        print(f"OrderAnzahl: {data['value']}")
 
     except (FileNotFoundError, json.JSONDecodeError):
         print("Fehler beim Laden oder Erstellen der Datei.")
@@ -27,7 +27,7 @@ def decrease_value(file_path):
 
         with open(file_path, 'w') as file:
             json.dump(data, file)
-        print(f"Neue Zahl: {data['value']}")
+        print(f"OrderAnzahl: {data['value']}")
 
     except (FileNotFoundError, json.JSONDecodeError):
         print("Fehler beim Laden oder Erstellen der Datei.")
@@ -43,7 +43,7 @@ def reset_value(file_path):
 
         with open(file_path, 'w') as file:
             json.dump(data, file)
-        print(f"Neue Zahl: {data['value']}")
+        print(f"OrderAnzahl: {data['value']}")
 
     except (FileNotFoundError, json.JSONDecodeError):
         print("Fehler beim Laden oder Erstellen der Datei.")
