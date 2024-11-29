@@ -8,6 +8,8 @@ import sys, time, json
 from termcolor import colored
 from ordervalues import decrease_value
 from telegram import Bot
+import asyncio
+from bot import send_message
 
 
 with open('keys.json', 'r') as keys:
@@ -73,26 +75,24 @@ def check_price_alpaca(coin, tp, order_type):
     while True:
         
         try:
-            openorder = trading_client.get_open_position(coin)
-            if openorder != None:
-                # Creating request object
-                request_params = CryptoLatestQuoteRequest(
-                symbol_or_symbols=f'{coin[:3]}/USD'
-                )
-                # Fetch the latest bar (price data)
-                latest_quote = aclient.get_crypto_latest_quote(request_params)
+            #openorder = trading_client.get_open_position(coin)
+            # Creating request object
+            request_params = CryptoLatestQuoteRequest(
+            symbol_or_symbols=f'{coin[:3]}/USD'
+            )
+            # Fetch the latest bar (price data)
+            latest_quote = aclient.get_crypto_latest_quote(request_params)
 
-                # must use symbol to access even though it is single symbol
-                askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
-                bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
-                print(f'Askprice is at {askprice}')
-            else:
-                decrease_value( file_path)
-                print(colored('StopLoss wurde getriggert', 'light_red'))
-                tbot.send_message(chat_id=groupchat_id, text = f'{coin} Price is down to {askprice}! Stoploss triggered')
-                input("Drücke eine Taste, um das Fenster zu schließen...")
+            # must use symbol to access even though it is single symbol
+            askprice = latest_quote[f'{coin[:3]}/USD'].ask_price
+            bidprice = latest_quote[f'{coin[:3]}/USD'].bid_price
+            print(f'Askprice is at {askprice}')
         except Exception as e:
-            print(f"Error fetching data: {e}")
+            print('Position not longer open', str(e))
+            decrease_value( file_path)
+            print(colored('StopLoss wurde getriggert', 'light_red'))
+            asyncio.run(send_message(chat_id=groupchat_id, text = f'{coin} Price is down to {askprice}! Stoploss triggered'))
+            input("Drücke eine Taste, um das Fenster zu schließen...")
 
         #Get Asset Balance
         asset = trading_client.get_open_position(coin)
@@ -105,7 +105,7 @@ def check_price_alpaca(coin, tp, order_type):
                 close_alpaca(coin = coin, qty = amount)
                 decrease_value(file_path)
                 print(colored('Trade erfolgreich', 'light_green'))
-                tbot.send_message(chat_id=groupchat_id, text =f'{coin} Price is up to {tp}! Takeprofit triggered')
+                asyncio.run(send_message(chat_id=groupchat_id, text =f'{coin} Price is up to {tp}! Takeprofit triggered'))
                 break
         elif order_type == 'Short':
             if askprice <= tp:

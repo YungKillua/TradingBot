@@ -13,6 +13,7 @@ import json, os, time, sys
 import subprocess
 from ordervalues import increase_value, reset_value, read_value
 from telegram import Bot
+import asyncio
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -20,7 +21,7 @@ app = Flask(__name__)
 systemos = sys.platform
 print(f'Os ist {systemos}')
 
-
+#Load Keys
 with open('keys.json', 'r') as keys:
     keys = json.load(keys)
     binance_api_key = keys['binance_api_key']
@@ -33,6 +34,12 @@ with open('keys.json', 'r') as keys:
     #print(api_key)
     #print(secret_key)
 
+#Load Config
+with open('config.json', 'r') as config:
+    config = json.load(config)
+    botstatus = config['mode']
+    strategy = config['strategy']
+
 # Verbinde mit dem Binance Testnet
 client = Client(binance_api_key, binance_secret_key, testnet=True)
 
@@ -44,8 +51,6 @@ file_path = 'counter.json'
 
 received_data = None
 
-status = {'Binance': False, 'Alpaca': False, 'ByBit': False}
-botstatus = None
 
 #Telegram Setup
 tbot = Bot(token=telegram_token)
@@ -66,32 +71,48 @@ def main():
         
         # Hauptmenü anzeigen und Auswahl treffen
         choice = inquirer.select(
-            message="Wähle eine Option:",
+            message="Select Option:",
             choices=[
                 "1. Run Bot",
                 "2. Get Balance",
-                "3. Change API-Keys",
-                "4. Modus setzen",
+                "3. Config and Keys",
+                "4. Switch Api Mode",
+                "5. Change Strategy",
                 "Exit"
             ],
         ).execute()
 
         # Auswahl abfragen und entsprechende Aktion ausführen
         if choice == "1. Run Bot":
-            start_bot()
+            print('Starting Bot')
+            run_server_in_thread()
         elif choice == "2. Get Balance":
             if botstatus == None:
                 print('No Mode selected')
-                coice = "4. Modus setzen"
+                coice = "4. Switch Api Mode"
             elif botstatus == 'Binance':
                 connect_to_binance(guthabenabfrage = True)
             elif botstatus == 'Alpaca':
                 get_alpaca_balance()
-        elif choice == "3. Change API-Keys":
-            change_apikeys()
-        elif choice == "4. Modus setzen":
+        elif choice == "3. Config and Keys":
             choice = inquirer.select(
-                message = 'Modus waehlen:',
+                message = 'Select Option:',
+                choices = [
+                    '1. Show Config and Keys',
+                    '2. Change Config',
+                    '3. Change Api Keys'
+                    ],
+            ).execute()
+            if choice == '1. Show Config and Keys':
+                print(config, keys)
+            elif choice == '2. Change Config':
+                change_config()
+            elif choice == '3. Change Api Keys':
+                change_apikeys()
+            choice = "3. Config and Keys"
+        elif choice == "4. Switch Api Mode":
+            choice = inquirer.select(
+                message = 'Select Api:',
                 choices = [
                     '1. Binance',
                     '2. Alpaca',
@@ -100,12 +121,28 @@ def main():
             ).execute()
             if choice == '1. Binance':
                 set_status('Binance')
-                refresh_status()
-                print(f'Modus wurde auf {botstatus} gesetzt')
+                #refresh_status()
+                print(f'Api Mode changed to {botstatus}')
             elif choice == '2. Alpaca':
                 set_status('Alpaca')
-                refresh_status()
-                print(f'Modus wurde auf {botstatus} gesetzt')
+                #refresh_status()
+                print(f'Api Mode changed to {botstatus}')
+            elif choice == 'ByBit':
+                set_status('ByBit')
+                print(f'Api Mode changed to {botstatus}')
+        elif choice == '5. Change Strategy':
+            choice = inquirer.select(
+                message = 'Select Strategy:',
+                choices = [
+                    '1. MACD',
+                    '2. Placeholder',
+                    '3. Placeholder'
+                    ],
+            ).execute()
+            if choice == 'MACD':
+                set_strategy('MACD')
+            elif choice == '':
+                break
         elif choice == "Exit":
             print("Programm wird beendet.")
             break
@@ -113,22 +150,17 @@ def main():
             print("Ungültige Auswahl, bitte erneut versuchen.")
         print('---------------------------')
 
-def set_status(aktiv):
-    global status
-    for key in status:
-        if key == aktiv:
-            status[key] = True
-        else:
-            status[key] = False
-    
-
-def refresh_status():
+def set_status(mode):
+    global config
     global botstatus
-
-    for key, value in status.items():
-        if value:
-            botstatus = key
-            
+    
+    config['mode'] = mode
+    botstatus = mode
+    with open('config.json', 'w') as newconfig:
+        json.dump(config, newconfig, indent=4)
+    
+def set_strategy():
+    return
 
 def change_apikeys():
         
@@ -144,12 +176,19 @@ def change_apikeys():
                 "api_key": api,
                 "secret_key": secret
                }
-        
+def change_config():
+    return
 
-def start_bot():
-    print('Starting Bot')
-    run_server_in_thread()
+#Telegram Functions
+async def send_message(chat_id, text):
+    
+    try:
+        await tbot.send_message(chat_id=chat_id, text=text)
+        print("Nachricht erfolgreich gesendet!")
+    except Exception as e:
+        print(f"Fehler beim Senden der Nachricht: {e}")
 
+#Exchange/Broker Functions
 def connect_to_binance(guthabenabfrage):
     connection = False
     try:
@@ -463,7 +502,7 @@ def alpaca_open_short_position(coin, stoploss, price):
     except Exception as e:
         print("Error creating order on Alpaca:", str(e))
     
-         
+#Flask Functions
 def start_server():
     app.run(host='::', port=80)
 
@@ -522,9 +561,9 @@ def process_data():
                 takeprofit = long[0]
                 sucess = long[1]
                 if sucess == True:
-                    tbot.send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.')
                     create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
                     increase_value(file_path)
+                    asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.'))
                 else:
                     print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             if botstatus == 'Alpaca' and alert == 'Sell Signal':
