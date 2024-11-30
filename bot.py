@@ -11,9 +11,10 @@ from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopL
 from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
-from ordervalues import increase_value, reset_value, read_value
+from ordervalues import increase_value, reset_value, read_value, decrease_value
 from telegram import Bot
 import asyncio
+
 
 # Definiere mögliche Optionen
 app = Flask(__name__)
@@ -502,6 +503,35 @@ def alpaca_open_short_position(coin, stoploss, price):
     except Exception as e:
         print("Error creating order on Alpaca:", str(e))
     
+def alpaca_check(coin):
+    try:
+        openorder = trading_client.get_open_position(coin)  
+        amount = openorder.qty
+        price = openorder.current_price
+    
+        try:
+            takeprofit_order_data = MarketOrderRequest(
+                symbol=coin,
+                qty=amount,
+                side=OrderSide.SELL,
+                time_in_Force=TimeInForce.GTC
+            )
+            takeprofit_order = trading_client.submit_order(takeprofit_order_data)
+        
+            print(colored('TakeProfit Order erfolgreich', 'cyan'),takeprofit_order)
+            decrease_value(file_path)
+            asyncio.run(send_message(chat_id=groupchat_id, text =f'{coin} Price is up to {price}! Takeprofit triggered'))
+            
+        except Exception as e:
+            print(colored('TakeProfit Order fehlgeschlagen', 'cyan'), str(e))
+            
+    except Exception as e:
+        print('No open Position found')
+        print('Waiting for next Signal...')
+        
+def bybit_open_long_position(coin, stoploss, price):
+    return
+
 #Flask Functions
 def start_server():
     app.run(host='::', port=80)
@@ -561,14 +591,15 @@ def process_data():
                 takeprofit = long[0]
                 sucess = long[1]
                 if sucess == True:
-                    create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
+                    #create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
                     increase_value(file_path)
                     asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.'))
                 else:
                     print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             if botstatus == 'Alpaca' and alert == 'Sell Signal':
                 #alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
-                return
+                alpaca_check(coin = chart)
+                
         else:
             print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
             
