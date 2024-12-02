@@ -136,14 +136,16 @@ def main():
                 message = 'Select Strategy:',
                 choices = [
                     '1. MACD',
-                    '2. Placeholder',
+                    '2. PDHL',
                     '3. Placeholder'
                     ],
             ).execute()
-            if choice == 'MACD':
+            if choice == '1. MACD':
                 set_strategy('MACD')
-            elif choice == '':
-                break
+                print(f'Strategy changed to {strategy}')
+            elif choice == '2. PDHL':
+                set_strategy('PDHL')
+                print(f'Strategy changed to {strategy}')
         elif choice == "Exit":
             print("Programm wird beendet.")
             break
@@ -160,8 +162,15 @@ def set_status(mode):
     with open('config.json', 'w') as newconfig:
         json.dump(config, newconfig, indent=4)
     
-def set_strategy():
-    return
+def set_strategy(strat):
+    global config
+    global strategy
+    
+    config['strategy'] = strat
+    strategy = strat
+    with open('config.json', 'w') as newconfig:
+        json.dump(config, newconfig, indent=4)
+
 
 def change_apikeys():
         
@@ -575,32 +584,48 @@ def process_data():
         alert = received_data.get('alert')
         price = float(received_data.get('price'))
         ema200 = float(received_data.get('ema200'))
+        sl = float(received_data.get('sl'))
+        tp = float(received_data.get('tp'))
         
         orders = read_value(file_path)
         if orders < 4 :
         
-            #Binance
-            if botstatus == 'binance' and alert == 'Buy Signal':
-                binance_open_long_position(coin = chart, stoploss = ema200, price = price)
+            #BUY
+            if all([alert == "Buy Signal",
+                    botstatus == "Alpaca",
+                    strategy == "MACD"
+                    ]): 
+                        long = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
+                        takeprofit = long[0]
+                        sucess = long[1]
+                        if sucess == True:
+                            #create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
+                            increase_value(file_path)
+                            asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.'))
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             
-            if botstatus == 'binance' and alert == 'Sell Signal':
-                binance_open_short_position(coin = chart, stoploss = ema200, price = price)
-            #Alpaca
-            if botstatus == 'Alpaca' and alert == 'Buy Signal':
-                long = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
-                takeprofit = long[0]
-                sucess = long[1]
-                if sucess == True:
-                    #create_subprocess(order = chart, tp = takeprofit, order_type = 'Long')
-                    increase_value(file_path)
-                    asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {ema200}. Takeprofit set at {takeprofit}.'))
-                else:
-                    print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
-            if botstatus == 'Alpaca' and alert == 'Sell Signal':
-                #alpaca_open_short_position(coin = chart, stoploss = ema200, price = price)
-                alpaca_check(coin = chart)
+            if all([alert == "Buy Signal",
+                    botstatus == "Alpaca",
+                    strategy == "PDHL"
+                    ]):
+                        long = alpaca_open_long_position(coin = chart, price = price, stoploss = sl)
+                        sucess = long[1]
+                        if sucess == True:
+                            create_subprocess(order = chart, tp = tp, order_type = 'Long')
+                            increase_value(file_path)
+                            asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {sl}. Takeprofit set at {tp}.'))
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
+                    
+            if all([alert == "Sell Signal",
+                    botstatus == "Alpaca",
+                    strategy == "MACD"
+                    ]):
+                        #short = alpaca_open_short_position()
+                        print('Short Funktion nicht aktiv')
                 
-        else:
+        else:       
             print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
             
     else:
