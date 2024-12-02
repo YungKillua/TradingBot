@@ -583,9 +583,6 @@ def process_data():
         chart = received_data.get('chart')
         alert = received_data.get('alert')
         price = float(received_data.get('price'))
-        ema200 = float(received_data.get('ema200'))
-        sl = float(received_data.get('sl'))
-        tp = float(received_data.get('tp'))
         
         orders = read_value(file_path)
         if orders < 4 :
@@ -595,6 +592,7 @@ def process_data():
                     botstatus == "Alpaca",
                     strategy == "MACD"
                     ]): 
+                        ema200 = float(received_data.get('ema200'))
                         long = alpaca_open_long_position(coin = chart, stoploss = ema200, price = price)
                         takeprofit = long[0]
                         sucess = long[1]
@@ -609,6 +607,8 @@ def process_data():
                     botstatus == "Alpaca",
                     strategy == "PDHL"
                     ]):
+                        sl = float(received_data.get('sl'))
+                        tp = float(received_data.get('tp'))
                         long = alpaca_open_long_position(coin = chart, price = price, stoploss = sl)
                         sucess = long[1]
                         if sucess == True:
