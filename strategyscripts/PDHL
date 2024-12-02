@@ -1,1 +1,60 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © yungflosey
 
+//@version=5
+strategy("Previous Day High and Low Strategy with SL/TP Toggle and Dynamic SL", shorttitle="PDHL SL/TP Toggle Dynamic SL", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// Input options for strategy optimization and toggles for visualizations
+profitTargetMultiplier = input.float(title="Profit Target Multiplier", defval=2.0, minval=0.1, maxval=100.0, step=0.1)
+stopLossMultiplier = input.float(title="Stop Loss Multiplier", defval=1.0, minval=0.1, maxval=100.0, step=0.1)
+showSLTP = input.bool(title="Show SL/TP Lines", defval=true)
+
+// Fetching the previous trading session's high and low
+prevDayHigh = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+prevDayLow = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+
+// Plotting the previous day's high and low for visual reference
+plot(prevDayHigh, "Previous Day High", color=color.green, linewidth=2, style=plot.style_stepline)
+plot(prevDayLow, "Previous Day Low", color=color.red, linewidth=2, style=plot.style_stepline)
+
+// Entry conditions based on price crossing over/under the previous day's high/low
+longCondition = close > prevDayHigh and close[1] < prevDayHigh
+shortCondition = close < prevDayLow and close[1] > prevDayLow
+
+// Dynamic SL and TP calculation based on multiplier
+float longSL = na
+float longTP = na
+float shortSL = na
+float shortTP = na
+
+string alertMessage = ''
+
+// Adjusting the SL based on the stopLossMultiplier
+if (longCondition)
+    longSL := prevDayLow - (stopLossMultiplier - 1) * (prevDayHigh - prevDayLow)
+    longTP := prevDayHigh + profitTargetMultiplier * (prevDayHigh - prevDayLow)
+
+if (shortCondition)
+    shortSL := prevDayHigh + (stopLossMultiplier - 1) * (prevDayHigh - prevDayLow)
+    shortTP := prevDayLow - profitTargetMultiplier * (prevDayHigh - prevDayLow)
+
+// Execute trade entries with dynamic SL and TP
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit Long", "Long", stop=longSL, limit=longTP)
+    alertMessage := '{"chart": "' + syminfo.ticker + '", "alert":  "Buy Signal", "price": "' + str.tostring(close) + '", "sl": "' + str.tostring(longSL) + '", "tp": "' + str.tostring(longTP) +'"}'
+
+if (shortCondition)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Exit Short", "Short", stop=shortSL, limit=shortTP)
+    alertMessage := '{"chart": "' + syminfo.ticker + '", "alert":  "Sell Signal", "price": "' + str.tostring(close) + '", "sl": "' + str.tostring(shortSL) + '", "tp": "' + str.tostring(shortTP) +'"}'
+
+// Conditional plotting for SL/TP outside local scope
+plotshape(showSLTP and longCondition ? longSL : na, title="Long SL", location=location.absolute, color=color.red, style=shape.cross, size=size.tiny)
+plotshape(showSLTP and longCondition ? longTP : na, title="Long TP", location=location.absolute, color=color.green, style=shape.cross, size=size.tiny)
+plotshape(showSLTP and shortCondition ? shortSL : na, title="Short SL", location=location.absolute, color=color.red, style=shape.cross, size=size.tiny)
+plotshape(showSLTP and shortCondition ? shortTP : na, title="Short TP", location=location.absolute, color=color.green, style=shape.cross, size=size.tiny)
+
+// Alarmbedingungen
+if (longCondition or shortCondition)
+    alert(alertMessage, alert.freq_once_per_bar_close)
