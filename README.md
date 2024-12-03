@@ -18,7 +18,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install require
 
 ## Usage
 ### 1. Tradingview Setup
->Go to strategy folder and copy the strategy you want yo use. Then go to Tradingview and paste into new pinescript and create alert for Crypto Coins you want to trade. Webhook adress should be the one you get when running bot. Make sure to forward ports or use with ngrok. 
+>Go to strategy folder and copy the strategy you want yo use. Then go to [Tradingview](https://tradingview.com) and paste into new pinescript and create alert for Crypto Coins you want to trade. Webhook adress should be the one you get when running bot. Make sure to forward ports or use with ngrok. 
 ### 2. Start Bot
 ```python
 python3 bot.py
