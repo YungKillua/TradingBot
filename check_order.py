@@ -75,7 +75,7 @@ def check_price_alpaca(coin, tp, order_type):
     while True:
         
         try:
-            #openorder = trading_client.get_open_position(coin)
+            openorder = trading_client.get_open_position(coin)
             # Creating request object
             request_params = CryptoLatestQuoteRequest(
             symbol_or_symbols=f'{coin[:3]}/USD'
@@ -123,7 +123,7 @@ def close_alpaca(coin, qty):
             symbol=coin,
             qty=qty,
             side=OrderSide.SELL,
-            time_in_Force=TimeInForce.GTC
+            time_in_force=TimeInForce.GTC
         )
         takeprofit_order = trading_client.submit_order(takeprofit_order_data)
         
