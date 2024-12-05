@@ -9,7 +9,7 @@ from termcolor import colored
 from ordervalues import decrease_value
 from telegram import Bot
 import asyncio
-from bot import send_message
+from tel import send_message
 
 
 with open('keys.json', 'r') as keys:
@@ -91,7 +91,7 @@ def check_price_alpaca(coin, tp, order_type):
             print('Position not longer open', str(e))
             decrease_value( file_path)
             print(colored('StopLoss wurde getriggert', 'light_red'))
-            asyncio.run(send_message(chat_id=groupchat_id, text = f'{coin} Price is down to {askprice}! Stoploss triggered'))
+            asyncio.run(send_message(token = telegram_token, chat_id=groupchat_id, text = f'{coin} Price is down to {askprice}! Stoploss triggered'))
             input("Drücke eine Taste, um das Fenster zu schließen...")
 
         #Get Asset Balance
