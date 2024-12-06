@@ -7,6 +7,7 @@ from binance.client import Client
 import sys, time, json
 from termcolor import colored
 from ordervalues import decrease_value
+import telegram
 from telegram import Bot
 import asyncio
 from tel import send_message
@@ -25,7 +26,7 @@ with open('keys.json', 'r') as keys:
 bclient = Client(binance_api_key, binance_secret_key, testnet=True)
 
 #Telegram Setup
-tbot = Bot(token=telegram_token)
+tbot = Bot(token=telegram_token, request=telegram.utils.request.Request(connect_timeout=5, read_timeout=10))
 
 #AlpacaClient Testnet
 if alpaca_api_key != '':

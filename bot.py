@@ -12,6 +12,7 @@ from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
 from ordervalues import increase_value, reset_value, read_value, decrease_value
+import telegram
 from telegram import Bot
 import asyncio
 
@@ -54,7 +55,7 @@ received_data = None
 
 
 #Telegram Setup
-tbot = Bot(token=telegram_token)
+tbot = Bot(token=telegram_token, request=telegram.utils.request.Request(connect_timeout=5, read_timeout=10))
 
 reset_value(file_path)
 
@@ -191,12 +192,21 @@ def change_config():
 
 #Telegram Functions
 async def send_message(chat_id, text):
-    
-    try:
-        await tbot.send_message(chat_id=chat_id, text=text)
-        print("Nachricht erfolgreich gesendet!")
-    except Exception as e:
-        print(f"Fehler beim Senden der Nachricht: {e}")
+    MAX_RETRIES = 3
+    retry_count = 0
+
+    while retry_count < MAX_RETRIES:
+        try:
+            await tbot.send_message(chat_id=chat_id, text=text)
+            print("Nachricht erfolgreich gesendet!")
+            return True
+        except Exception as e:
+            print(f"Fehler beim Senden der Nachricht: {e}")
+            retry_count += 1
+            await asyncio.sleep(5)
+
+    print("Maximale Wiederholungen erreicht. Nachricht konnte nicht gesendet werden.")
+    return False
 
 #Exchange/Broker Functions
 def connect_to_binance(guthabenabfrage):
