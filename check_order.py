@@ -31,8 +31,7 @@ bclient = Client(binance_api_key, binance_secret_key, testnet=True)
 request = HTTPXRequest(
     connect_timeout=5,  # Timeout für Verbindungsaufbau
     read_timeout=10,    # Timeout für Antwort vom Telegram-Server
-    pool_timeout=10,    # Zeit, auf einen freien Pool zu warten
-    max_connections=20  # Maximale Anzahl paral
+    pool_timeout=10    # Zeit, auf einen freien Pool zu warten
 )
 
 tbot = Bot(token=telegram_token, request=request)

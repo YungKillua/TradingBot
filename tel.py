@@ -1,10 +1,19 @@
 import asyncio
 from telegram import Bot
+from telegram.request import HTTPXRequest
 
 #Telegram Functions
 async def send_message(token, chat_id, text):
     #Telegram Setup
-    tbot = Bot(token=token)
+
+    # HTTPXRequest konfigurieren (Timeouts und Poolgröße anpassen)
+    request = HTTPXRequest(
+    connect_timeout=5,  # Timeout für Verbindungsaufbau
+    read_timeout=10,    # Timeout für Antwort vom Telegram-Server
+    pool_timeout=10    # Zeit, auf einen freien Pool zu warten
+    )
+
+    tbot = Bot(token=token, request=request)
     MAX_RETRIES = 3
     retry_count = 0
 
