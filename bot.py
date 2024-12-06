@@ -12,8 +12,8 @@ from alpaca.trading.models import Order
 import json, os, time, sys
 import subprocess
 from ordervalues import increase_value, reset_value, read_value, decrease_value
-import telegram
 from telegram import Bot
+from telegram.request import HTTPXRequest
 import asyncio
 
 
@@ -55,7 +55,16 @@ received_data = None
 
 
 #Telegram Setup
-tbot = Bot(token=telegram_token, request=telegram.utils.request.Request(connect_timeout=5, read_timeout=10))
+
+# HTTPXRequest konfigurieren (Timeouts und Poolgröße anpassen)
+request = HTTPXRequest(
+    connect_timeout=5,  # Timeout für Verbindungsaufbau
+    read_timeout=10,    # Timeout für Antwort vom Telegram-Server
+    pool_timeout=10,    # Zeit, auf einen freien Pool zu warten
+    max_connections=20  # Maximale Anzahl paral
+)
+
+tbot = Bot(token=telegram_token, request=request)
 
 reset_value(file_path)
 
