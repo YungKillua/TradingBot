@@ -3,6 +3,9 @@
     "binance_secret_key": "your key here",
     "alpaca_api_key": "your key here",
     "alpaca_secret_key": "your key here",
+    "bitget_api_key": "your key",
+    "bitget_secret_key": "your key",
+    "bitget_passphrase": "your passphrase",
     "telegram_bot_token": "your bot token",
     "groupchat_id": "your chat id"
 }
