@@ -1,0 +1,53 @@
+//@version=5
+strategy("Multi-Indicator Long Strategy (Debugged)", overlay=true)
+
+// Inputs
+smaFastPeriod = input.int(50, title="SMA Fast Period", minval=1)
+smaSlowPeriod = input.int(200, title="SMA Slow Period", minval=1)
+rsiPeriod = input.int(14, title="RSI Period", minval=1)
+rsiOversold = input.float(40, title="RSI Oversold Level", minval=1, maxval=50) // Adjusted for more signals
+macdFast = input.int(12, title="MACD Fast EMA", minval=1)
+macdSlow = input.int(26, title="MACD Slow EMA", minval=1)
+macdSignal = input.int(9, title="MACD Signal EMA", minval=1)
+atrPeriod = input.int(14, title="ATR Period", minval=1)
+riskRewardRatio = input.float(2.0, title="Risk/Reward Ratio", minval=1.0)
+
+string alertMessage = ''
+
+// Indicators
+smaFast = ta.sma(close, smaFastPeriod)
+smaSlow = ta.sma(close, smaSlowPeriod)
+rsi = ta.rsi(close, rsiPeriod)
+[macdLine, signalLine, _] = ta.macd(close, macdFast, macdSlow, macdSignal)
+atr = ta.atr(atrPeriod)
+
+// Conditions
+isBullishTrend = smaFast > smaSlow
+isOversold = rsi < rsiOversold
+isMACDBullish = macdLine > signalLine
+
+// Debugging: Plot conditions
+plot(isBullishTrend ? 1 : 0, color=color.green, title="Bullish Trend Condition (SMA)")
+plot(isOversold ? 1 : 0, color=color.blue, title="Oversold Condition (RSI)")
+plot(isMACDBullish ? 1 : 0, color=color.orange, title="MACD Bullish Condition")
+
+// Entry Condition
+longCondition = isBullishTrend and isOversold and isMACDBullish
+
+// Stop Loss and Take Profit
+stopLoss = close - (1.0 * atr) // 1x ATR below entry
+takeProfit = close + (2.0 * atr) // 2x ATR above entry
+
+// Strategy Execution
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Take Profit/Stop Loss", from_entry="Long", stop=stopLoss, limit=takeProfit)
+    alertMessage := '{"chart": "' + syminfo.ticker + '", "alert":  "Buy Signal", "price": "' + str.tostring(close) + '", "sl": "' + str.tostring(stopLoss) + '", "tp": "' + str.tostring(takeProfit) +'"}'
+    alert(alertMessage, alert.freq_once_per_bar_close)
+
+// Plotting
+plot(smaFast, color=color.blue, title="SMA Fast")
+plot(smaSlow, color=color.red, title="SMA Slow")
+hline(rsiOversold, title="RSI Oversold Level", color=color.green)
+plot(macdLine, color=color.orange, title="MACD Line")
+plot(signalLine, color=color.blue, title="Signal Line")
