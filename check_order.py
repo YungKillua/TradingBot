@@ -28,13 +28,13 @@ bclient = Client(binance_api_key, binance_secret_key, testnet=True)
 #Telegram Setup
 
 # HTTPXRequest konfigurieren (Timeouts und Poolgröße anpassen)
-request = HTTPXRequest(
+hx_request = HTTPXRequest(
     connect_timeout=5,  # Timeout für Verbindungsaufbau
     read_timeout=10,    # Timeout für Antwort vom Telegram-Server
     pool_timeout=10    # Zeit, auf einen freien Pool zu warten
 )
 
-tbot = Bot(token=telegram_token, request=request)
+tbot = Bot(token=telegram_token, request=hx_request)
 
 #AlpacaClient Testnet
 if alpaca_api_key != '':

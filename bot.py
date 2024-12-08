@@ -57,13 +57,13 @@ received_data = None
 #Telegram Setup
 
 # HTTPXRequest konfigurieren (Timeouts und Poolgröße anpassen)
-request = HTTPXRequest(
+hx_request = HTTPXRequest(
     connect_timeout=5,  # Timeout für Verbindungsaufbau
     read_timeout=10,    # Timeout für Antwort vom Telegram-Server
     pool_timeout=10    # Zeit, auf einen freien Pool zu warten
 )
 
-tbot = Bot(token=telegram_token, request=request)
+tbot = Bot(token=telegram_token, request=hx_request)
 
 reset_value(file_path)
 
@@ -126,7 +126,7 @@ def main():
                 choices = [
                     '1. Binance',
                     '2. Alpaca',
-                    '3. ByBit'
+                    '3. Bitget'
                     ],
             ).execute()
             if choice == '1. Binance':
@@ -137,8 +137,8 @@ def main():
                 set_status('Alpaca')
                 #refresh_status()
                 print(f'Api Mode changed to {botstatus}')
-            elif choice == 'ByBit':
-                set_status('ByBit')
+            elif choice == '3. Bitget':
+                set_status('Bitget')
                 print(f'Api Mode changed to {botstatus}')
         elif choice == '5. Change Strategy':
             choice = inquirer.select(
@@ -556,9 +556,10 @@ def alpaca_check(coin):
         print('No open Position found')
         print('Waiting for next Signal...')
         
-def bybit_open_long_position(coin, stoploss, price):
+def bitget_open_long_position(coin, stoploss, price):
     return
-
+def bitget_open_short_position(coin, stoploss, price):
+    return
 #Flask Functions
 def start_server():
     app.run(host='::', port=80)
