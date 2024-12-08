@@ -1,4 +1,6 @@
-//@version=5
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © yungflosey
+
 strategy("Multi-Indicator Long Strategy (Debugged)", overlay=true)
 
 // Inputs
