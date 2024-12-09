@@ -1,6 +1,7 @@
 # TradingBot
 
-Python Bot that uses Tradingview webhook signals to place orders on various exchanges.
+>Python Bot that uses Tradingview webhook signals to place orders on various exchanges.
+                                                                                                          Works on Windows, Linux and Mac.                                                                         Made for usage on Rasberry Pi.
 
 ## Installation
 
@@ -15,7 +16,8 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install require
 ```bash
 >>pip install -r requirements.txt 
 ```
-
+## Setup
+>Put your api keys in keys.json you can change the config via menu
 ## Usage
 ### 1. Tradingview Setup
 >Go to strategy folder and copy the strategy you want yo use. Then go to [Tradingview](https://tradingview.com) and paste into new pinescript and create alert for Crypto Coins you want to trade. Webhook adress should be the one you get when running bot. Make sure to forward ports or use with ngrok. 
