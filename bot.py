@@ -2,13 +2,15 @@ from InquirerPy import inquirer
 from termcolor import colored
 from flask import Flask, request, jsonify
 import threading
-from binance.client import Client
+import ccxt
+from binance.client import Client as binance_client
 from binance.exceptions import BinanceAPIException, BinanceRequestException
 from binance.enums import *
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, OrderType, TimeInForce, OrderClass
 from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopLimitOrderRequest, TakeProfitRequest, StopLossRequest
 from alpaca.trading.models import Order
+from pybitget import Client as bitget_client
 import json, os, time, sys
 import subprocess
 from ordervalues import increase_value, reset_value, read_value, decrease_value
@@ -30,6 +32,9 @@ with open('keys.json', 'r') as keys:
     binance_secret_key = keys['binance_secret_key']
     alpaca_api_key = keys['alpaca_api_key']
     alpaca_secret_key = keys['alpaca_secret_key']
+    bitget_api_key = keys['bitget_api_key']
+    bitget_secret_key = keys['bitget_secret_key']
+    bitget_passphrase = keys['bitget_passphrase']
     telegram_token = keys['telegram_bot_token']
     groupchat_id = keys['groupchat_id']
     #Debug
@@ -43,11 +48,20 @@ with open('config.json', 'r') as config:
     strategy = config['strategy']
 
 # Verbinde mit dem Binance Testnet
-client = Client(binance_api_key, binance_secret_key, testnet=True)
+client = binance_client(binance_api_key, binance_secret_key, testnet=True)
 
 #AlpacaClient Testnet
 if alpaca_api_key != '':
-    trading_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
+    alpaca_client = TradingClient(alpaca_api_key, alpaca_secret_key, paper=True)
+    
+#Bitget 
+
+if bitget_api_key != '':
+    bitget = ccxt.bitget({
+        'apiKey': bitget_api_key,
+        'secret': bitget_secret_key,
+        'password': bitget_passphrase,  # Passphrase ist bei Bitget erforderlich
+    })
 
 file_path = 'counter.json'
 
@@ -58,9 +72,9 @@ received_data = None
 
 # HTTPXRequest konfigurieren (Timeouts und Poolgröße anpassen)
 hx_request = HTTPXRequest(
-    connect_timeout=5,  # Timeout für Verbindungsaufbau
-    read_timeout=10,    # Timeout für Antwort vom Telegram-Server
-    pool_timeout=10    # Zeit, auf einen freien Pool zu warten
+    connect_timeout=10,  # Timeout für Verbindungsaufbau
+    read_timeout=20,    # Timeout für Antwort vom Telegram-Server
+    pool_timeout=40    # Zeit, auf einen freien Pool zu warten
 )
 
 tbot = Bot(token=telegram_token, request=hx_request)
@@ -100,10 +114,8 @@ def main():
             if botstatus == None:
                 print('No Mode selected')
                 coice = "4. Switch Api Mode"
-            elif botstatus == 'Binance':
-                connect_to_binance(guthabenabfrage = True)
-            elif botstatus == 'Alpaca':
-                get_alpaca_balance()
+            else:
+                get_futures_balance()
         elif choice == "3. Config and Keys":
             choice = inquirer.select(
                 message = 'Select Option:',
@@ -146,7 +158,7 @@ def main():
                 choices = [
                     '1. MACD',
                     '2. PDHL',
-                    '3. Placeholder'
+                    '3. GCDA'
                     ],
             ).execute()
             if choice == '1. MACD':
@@ -154,6 +166,9 @@ def main():
                 print(f'Strategy changed to {strategy}')
             elif choice == '2. PDHL':
                 set_strategy('PDHL')
+                print(f'Strategy changed to {strategy}')
+            elif choice == '3. GCDA':
+                set_strategy('GCDA')
                 print(f'Strategy changed to {strategy}')
         elif choice == "Exit":
             print("Programm wird beendet.")
@@ -288,12 +303,20 @@ def connect_to_binance(guthabenabfrage):
 
 def get_futures_balance():
     # Rufe die Balance für das Futures-Konto ab
-    try:
-        futures_balance = client.futures_account_balance()
-        for balance in futures_balance:
-            print(f"Asset: {balance['asset']}, Balance: {balance['balance']}")
-    except Exception as e:
-        print(f"Fehler beim Abrufen des Futures-Guthabens: {e}")
+    if botstatus == 'Bitget':
+        try:
+            balance = bitget.fetch_balance({'type': 'future'})
+            print(colored(f'Futures Balance on Bitget is {balance} ', 'green'))
+        except Exception as e:
+            print("Fehler bei der Anfrage:", e)
+        
+    elif botstatus == 'Binance':
+        try: 
+            futures_balance = client.futures_account_balance()
+            for balance in futures_balance:
+                print(f"Asset: {balance['asset']}, Balance: {balance['balance']}")
+        except Exception as e:
+            print(f"Fehler beim Abrufen des Futures-Guthabens: {e}")
 
 def binance_open_long_position(coin, stoploss, price):
     connection = connect_to_binance(guthabenabfrage=False)
@@ -415,17 +438,20 @@ def binance_open_short_position(coin, stoploss, price):
             print('Fehler beim Erstellen der OCO Buy Order', str(e))
 
 def get_alpaca_balance():
-    account = trading_client.get_account()
+    account = alpaca_client.get_account()
     print(account.cash)
     print(account.crypto_status)
-    asset = trading_client.get_open_position('ETHUSD')
+    asset = alpaca_client.get_open_position('ETHUSD')
     print(asset)
     print(asset.qty)
 
 def alpaca_open_long_position(coin, stoploss, price):
 
+    if stoploss == None:
+        stoploss = 0
+    
     def refresh():
-        account = trading_client.get_account()
+        account = alpaca_client.get_account()
         return account
     
     account = refresh()
@@ -453,27 +479,29 @@ def alpaca_open_long_position(coin, stoploss, price):
             side=OrderSide.BUY,
             time_in_force=TimeInForce.GTC
         )
-        market_order = trading_client.submit_order(market_order_data)
+        market_order = alpaca_client.submit_order(market_order_data)
         print(colored("Buy order successfully created", 'cyan'), market_order)
 
         # Wait for the buy order to fill
         time.sleep(2)  # Optional: add checks for actual order fill status here
 
         #Get Asset Balance
-        asset = trading_client.get_open_position(coin)
+        asset = alpaca_client.get_open_position(coin)
         amount = asset.qty
         
-        # Create a stop loss order
-        stoploss_order_data = StopLimitOrderRequest(
-            symbol=coin,
-            qty=amount,
-            side=OrderSide.SELL,
-            stop_price=stoploss,
-            limit_price=limit,
-            time_in_force=TimeInForce.GTC
-        )
-        stoploss_order = trading_client.submit_order(stoploss_order_data)
-        print(colored("Stop loss order successfully created", 'cyan'), stoploss_order)
+        if stoploss != None:
+            # Create a stop loss order
+            stoploss_order_data = StopLimitOrderRequest(
+                symbol=coin,
+                qty=amount,
+                side=OrderSide.SELL,
+                stop_price=stoploss,
+                limit_price=limit,
+                time_in_force=TimeInForce.GTC
+            )
+            stoploss_order = alpaca_client.submit_order(stoploss_order_data)
+            print(colored("Stop loss order successfully created", 'cyan'), stoploss_order)
+            
         return takeprofit, True
     
     except Exception as e:
@@ -484,7 +512,7 @@ def alpaca_open_long_position(coin, stoploss, price):
     
 
 def alpaca_open_short_position(coin, stoploss, price):
-    account = trading_client.get_account()
+    account = alpaca_client.get_account()
     usd_balance = float(account.cash)
     usd_balance_4th = usd_balance/4
     risk_amount_usd = usd_balance_4th * 0.05
@@ -508,7 +536,7 @@ def alpaca_open_short_position(coin, stoploss, price):
             side=OrderSide.SELL,
             time_in_force=TimeInForce.GTC
         )
-        market_order = trading_client.submit_order(market_order_data)
+        market_order = alpaca_client.submit_order(market_order_data)
         print("Sell order successfully created", market_order)
 
         # Wait for the buy order to fill
@@ -524,7 +552,7 @@ def alpaca_open_short_position(coin, stoploss, price):
             limit_price=limit,
             time_in_force=TimeInForce.GTC
         )
-        stoploss_order = trading_client.submit_order(stoploss_order_data)
+        stoploss_order = alpaca_client.submit_order(stoploss_order_data)
         print("Stop loss order successfully created", stoploss_order)
 
     except Exception as e:
@@ -532,7 +560,7 @@ def alpaca_open_short_position(coin, stoploss, price):
     
 def alpaca_check(coin):
     try:
-        openorder = trading_client.get_open_position(coin)  
+        openorder = alpaca_client.get_open_position(coin)  
         amount = openorder.qty
         price = openorder.current_price
     
@@ -543,7 +571,7 @@ def alpaca_check(coin):
                 side=OrderSide.SELL,
                 time_in_Force=TimeInForce.GTC
             )
-            takeprofit_order = trading_client.submit_order(takeprofit_order_data)
+            takeprofit_order = alpaca_client.submit_order(takeprofit_order_data)
         
             print(colored('TakeProfit Order erfolgreich', 'cyan'),takeprofit_order)
             decrease_value(file_path)
@@ -636,7 +664,25 @@ def process_data():
                             asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$. Stoploss set at {sl}. Takeprofit set at {tp}.'))
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
-                    
+            
+            if all([alert == "Buy Signal",
+                    botstatus == "Alpaca",
+                    strategy == "GCDA"
+                    ]):
+                        long = alpaca_open_long_position(coin = chart, price = price, stoploss = None)
+                        sucess = long[1]
+                        if sucess == True:
+                            increase_value(file_path)
+                            asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$.'))
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
+                            
+            if all([alert == "Close Signal",
+                    botstatus == "Alpaca",
+                    strategy == "GCDA"
+                    ]):
+                        alpaca_check(coin = chart)
+            
             if all([alert == "Sell Signal",
                     botstatus == "Alpaca",
                     strategy == "MACD"
