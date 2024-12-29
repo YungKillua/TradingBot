@@ -503,7 +503,7 @@ def alpaca_open_long_position(coin, stoploss, price):
         asset = alpaca_client.get_open_position(coin)
         amount = asset.qty
         
-        if stoploss != None:
+        if stoploss != 0:
             # Create a stop loss order
             stoploss_order_data = StopLimitOrderRequest(
                 symbol=coin,
