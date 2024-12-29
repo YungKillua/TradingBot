@@ -721,7 +721,7 @@ def process_data():
                             
             if all([alert == "Close Signal",
                     botstatus == "Alpaca",
-                    strategy == "GCDA"
+                    strategy == "BBA"
                     ]):
                         alpaca_check(coin = chart)
             
