@@ -34,11 +34,21 @@ async def check_file_and_send_message():
     except Exception as e:
         print(f"Fehler beim Lesen oder Bereinigen der Datei: {e}")
 
+def clear_message():
+    file_path = message_file
+    
+    try:
+        # Datei bereinigen
+        with open(file_path, 'w') as file:
+                    file.truncate(0)  # Datei leeren
+    except Exception as e:
+        print(f"Fehler beim Bereinigen der Datei: {e}")
 
 # Hauptprogramm
 async def main():
     while True:
         await check_file_and_send_message()  # Überprüfen und Nachricht senden, wenn Text vorhanden ist
+        clear_message()
         print('Waiting...')
         await asyncio.sleep(100)  # FetchIntervall
 
