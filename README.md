@@ -25,7 +25,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install require
 ```python
 python3 bot.py
 ```
-## For Telegram Messages open another shell and run:
+#### For Telegram Messages open another shell and run:
 ```python
 python3 tel.py
 ```
