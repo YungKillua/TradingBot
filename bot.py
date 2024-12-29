@@ -244,6 +244,16 @@ def write_message(text):
             print(f"Message written to file: {text}")
     except Exception as e:
         print(f"Fehler beim Schreiben in die Datei: {e}")
+        
+def clear_message():
+    file_path = message_file
+    
+    try:
+        # Datei bereinigen
+        with open(file_path, 'w') as file:
+                    file.truncate(0)  # Datei leeren
+    except Exception as e:
+        print(f"Fehler beim Bereinigen der Datei: {e}")
 
 #Exchange/Broker Functions
 def connect_to_binance(guthabenabfrage):
@@ -590,6 +600,7 @@ def alpaca_check(coin):
             print(colored('TakeProfit Order erfolgreich', 'cyan'),takeprofit_order)
             decrease_value(file_path)
             write_message(text =f'{coin} Price is up to {price}!')
+            clear_message()
             
         except Exception as e:
             print(colored('TakeProfit Order fehlgeschlagen', 'cyan'), str(e))
@@ -706,6 +717,7 @@ def process_data():
                         if sucess == True:
                             increase_value(file_path)
                             write_message(text=f'Opening Trade on {chart} at {price}$.')
+                            clear_message()
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
                             

@@ -30,9 +30,7 @@ async def check_file_and_send_message():
             content = file.read().strip()
             if content:
                 await send_telegram_message(content)
-                # Datei bereinigen, nachdem die Nachricht gesendet wurde
-                with open(file_path, 'w') as file:
-                    file.truncate(0)  # Datei leeren
+
     except Exception as e:
         print(f"Fehler beim Lesen oder Bereinigen der Datei: {e}")
 
@@ -41,6 +39,7 @@ async def check_file_and_send_message():
 async def main():
     while True:
         await check_file_and_send_message()  # Überprüfen und Nachricht senden, wenn Text vorhanden ist
+        print('Waiting...')
         await asyncio.sleep(100)  # FetchIntervall
 
 # Starten des asynchronen Programms
