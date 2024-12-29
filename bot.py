@@ -64,6 +64,7 @@ if bitget_api_key != '':
     })
 
 file_path = 'counter.json'
+message_file = 'message.txt'
 
 received_data = None
 
@@ -158,7 +159,8 @@ def main():
                 choices = [
                     '1. MACD',
                     '2. PDHL',
-                    '3. GCDA'
+                    '3. GCDA',
+                    '4. BBA'
                     ],
             ).execute()
             if choice == '1. MACD':
@@ -169,6 +171,9 @@ def main():
                 print(f'Strategy changed to {strategy}')
             elif choice == '3. GCDA':
                 set_strategy('GCDA')
+                print(f'Strategy changed to {strategy}')
+            elif choice == '4. BBA':
+                set_strategy('BBA')
                 print(f'Strategy changed to {strategy}')
         elif choice == "Exit":
             print("Programm wird beendet.")
@@ -230,6 +235,15 @@ async def send_message(chat_id, text):
 
     print("Maximale Wiederholungen erreicht. Nachricht konnte nicht gesendet werden.")
     return False
+
+def write_message(text):
+    file_path = message_file
+    try:
+        with open(file_path, 'a') as file:
+            file.write(text)
+            print(f"Message written to file: {text}")
+    except Exception as e:
+        print(f"Fehler beim Schreiben in die Datei: {e}")
 
 #Exchange/Broker Functions
 def connect_to_binance(guthabenabfrage):
@@ -575,7 +589,7 @@ def alpaca_check(coin):
         
             print(colored('TakeProfit Order erfolgreich', 'cyan'),takeprofit_order)
             decrease_value(file_path)
-            asyncio.run(send_message(chat_id=groupchat_id, text =f'{coin} Price is up to {price}! Takeprofit triggered'))
+            write_message(text =f'{coin} Price is up to {price}!')
             
         except Exception as e:
             print(colored('TakeProfit Order fehlgeschlagen', 'cyan'), str(e))
@@ -674,6 +688,24 @@ def process_data():
                         if sucess == True:
                             increase_value(file_path)
                             asyncio.run(send_message(chat_id=groupchat_id, text = f'Opening Trade on {chart} at {price}$.'))
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
+                            
+            if all([alert == "Close Signal",
+                    botstatus == "Alpaca",
+                    strategy == "GCDA"
+                    ]):
+                        alpaca_check(coin = chart)
+                        
+            if all([alert == "Buy Signal",
+                    botstatus == "Alpaca",
+                    strategy == "BBA"
+                    ]):
+                        long = alpaca_open_long_position(coin = chart, price = price, stoploss = None)
+                        sucess = long[1]
+                        if sucess == True:
+                            increase_value(file_path)
+                            write_message(text=f'Opening Trade on {chart} at {price}$.')
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
                             
