@@ -593,7 +593,7 @@ def alpaca_check(coin):
                 symbol=coin,
                 qty=amount,
                 side=OrderSide.SELL,
-                time_in_Force=TimeInForce.GTC
+                time_in_force=TimeInForce.GTC
             )
             takeprofit_order = alpaca_client.submit_order(takeprofit_order_data)
         
