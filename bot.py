@@ -471,6 +471,15 @@ def get_alpaca_balance():
 
 def alpaca_open_long_position(coin, stoploss, price):
 
+    ordervalue = read_value(file_path)
+    risk_factor = 4
+    if ordervalue == '1':
+        risk_factor = 3
+    elif ordervalue == '2':
+        risk_factor = 2
+    elif ordervalue == '3':
+        risk_factor = 1
+    
     if stoploss == None:
         stoploss = 0
     
@@ -480,7 +489,7 @@ def alpaca_open_long_position(coin, stoploss, price):
     
     account = refresh()
     usd_balance = float(account.cash)
-    usd_balance_4th = usd_balance/4
+    usd_balance_4th = usd_balance/risk_factor
     risk_amount_usd = usd_balance_4th * 0.05
     coin_amount = risk_amount_usd / (price - stoploss)
     if coin_amount * price > usd_balance_4th:
@@ -701,11 +710,6 @@ def process_data():
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
                             
-            if all([alert == "Close Signal",
-                    botstatus == "Alpaca",
-                    strategy == "GCDA"
-                    ]):
-                        alpaca_check(coin = chart)
                         
             if all([alert == "Buy Signal",
                     botstatus == "Alpaca",
@@ -718,12 +722,7 @@ def process_data():
                             write_message(text=f'Opening Trade on {chart} at {price}$.')
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
-                            
-            if all([alert == "Close Signal",
-                    botstatus == "Alpaca",
-                    strategy == "BBA"
-                    ]):
-                        alpaca_check(coin = chart)
+ 
             
             if all([alert == "Sell Signal",
                     botstatus == "Alpaca",
@@ -731,10 +730,22 @@ def process_data():
                     ]):
                         #short = alpaca_open_short_position()
                         print('Short Funktion nicht aktiv')
-                
+                        
         else:       
             print(colored('Order wird nicht erstellt, da schon 4 Positionen offen sind', 'light_red'))
             
+        if all([alert == "Close Signal",
+                    botstatus == "Alpaca",
+                    strategy == "BBA"
+                    ]):
+                        alpaca_check(coin = chart)
+                        
+        if all([alert == "Close Signal",
+                    botstatus == "Alpaca",
+                    strategy == "GCDA"
+                    ]):
+                        alpaca_check(coin = chart)
+        
     else:
         print("Keine Daten empfangen")
 
