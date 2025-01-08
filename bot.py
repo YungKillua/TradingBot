@@ -596,6 +596,7 @@ def alpaca_check(coin):
         openorder = alpaca_client.get_open_position(coin)  
         amount = openorder.qty
         price = openorder.current_price
+        prozent = float(openorder.unrealized_plpc) * 100
     
         try:
             takeprofit_order_data = MarketOrderRequest(
@@ -608,7 +609,10 @@ def alpaca_check(coin):
         
             print(colored('TakeProfit Order erfolgreich', 'cyan'),takeprofit_order)
             decrease_value(file_path)
-            write_message(text =f'{coin} Price is up to {price}!')
+            if prozent > 0:
+                write_message(text =f'{coin} Price is up to {price}! Percentage is {prozent:.2f}%')
+            if prozent < 0:
+                write_message(text =f'{coin} Price is down to {price}! Percentage is {prozent:.2f}%')
             
         except Exception as e:
             print(colored('TakeProfit Order fehlgeschlagen', 'cyan'), str(e))
