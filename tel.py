@@ -1,10 +1,12 @@
 import json
 import telegram
+from telegram import InputFile
 from datetime import datetime
 import asyncio
 
 #Variablen
 message_file = 'message.txt'
+image_path = 'image.png'
 
 #Get Keys
 with open('keys.json', 'r') as keys:
@@ -18,8 +20,11 @@ CHAT_ID = chat_id
 bot = telegram.Bot(token=API_TOKEN)
 
 # Funktion zum Senden einer Nachricht an Telegram (asynchron)
-async def send_telegram_message(message):
-    await bot.send_message(chat_id=CHAT_ID, text=message)
+async def send_telegram_message(message, image_path):
+    # Bild als InputFile laden
+    with open(image_path, 'rb') as image_file:
+        # Bild senden mit Nachricht als Caption
+        await bot.send_photo(chat_id=CHAT_ID, photo=InputFile(image_file), caption=message)
 
 # Funktion zum Überprüfen der Datei, Senden einer Nachricht und Bereinigen der Datei
 async def check_file_and_send_message():
@@ -29,7 +34,7 @@ async def check_file_and_send_message():
         with open(file_path, 'r') as file:
             content = file.read().strip()
             if content:
-                await send_telegram_message(content)
+                await send_telegram_message(content, image_path)
 
     except Exception as e:
         print(f"Fehler beim Lesen oder Bereinigen der Datei: {e}")
