@@ -621,6 +621,11 @@ def alpaca_check(coin):
         print('No open Position found')
         print('Waiting for next Signal...')
         
+def get_orders():
+    pos = alpaca_client.get_all_positions()
+    poslen = len(pos)
+    return poslen
+        
 def bitget_open_long_position(coin, stoploss, price):
     return
 def bitget_open_short_position(coin, stoploss, price):
@@ -668,7 +673,7 @@ def process_data():
         alert = received_data.get('alert')
         price = float(received_data.get('price'))
         
-        orders = read_value(file_path)
+        orders = get_orders()
         if orders < 4 :
         
             #BUY
