@@ -160,7 +160,8 @@ def main():
                     '1. MACD',
                     '2. PDHL',
                     '3. GCDA',
-                    '4. BBA'
+                    '4. BBA',
+                    '5. BBW'
                     ],
             ).execute()
             if choice == '1. MACD':
@@ -174,6 +175,9 @@ def main():
                 print(f'Strategy changed to {strategy}')
             elif choice == '4. BBA':
                 set_strategy('BBA')
+                print(f'Strategy changed to {strategy}')
+            elif choice == '5. BBW':
+                set_strategy('BBW')
                 print(f'Strategy changed to {strategy}')
         elif choice == "Exit":
             print("Programm wird beendet.")
@@ -732,6 +736,17 @@ def process_data():
                         else:
                             print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
  
+            if all([alert == "Buy Signal",
+                    botstatus == "Alpaca",
+                    strategy == "BBW"
+                    ]):
+                        long = alpaca_open_long_position(coin = chart, price = price, stoploss = None)
+                        sucess = long[1]
+                        if sucess == True:
+                            increase_value(file_path)
+                            write_message(text=f'Opening Trade on {chart} at {price}$.')
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
             
             if all([alert == "Sell Signal",
                     botstatus == "Alpaca",
@@ -748,6 +763,12 @@ def process_data():
                     strategy == "BBA"
                     ]):
                         alpaca_check(coin = chart)
+                        
+        if all([alert == "Close Signal",
+                    botstatus == "Alpaca",
+                    strategy == "BBW"
+                    ]):
+                        alpaca_check(coin = chart)                
                         
         if all([alert == "Close Signal",
                     botstatus == "Alpaca",
