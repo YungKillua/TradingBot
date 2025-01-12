@@ -1,0 +1,48 @@
+//@version=4
+strategy(overlay=true, shorttitle="FVS v1 [Alorse]", default_qty_type = strategy.percent_of_equity, initial_capital = 100000, default_qty_value = 100, pyramiding = 0, title="Flawless Victory Strategy v1 [Alorse]", currency = 'USD')
+
+string alertMessage = ""
+
+// ** Inputs ** //
+v1 = input(true, title="Version 1 - Doesn't Use SL/TP")
+
+// ** Indicators ** //
+// RSI
+len = 14
+src = close
+up = rma(max(change(src), 0), len)
+down = rma(-min(change(src), 0), len)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - 100 / (1 + up / down)
+
+// v1 Bollinger Bands
+length1 = 20
+src1 = close
+mult1 = 1.0
+basis1 = sma(src1, length1)
+dev1 = mult1 * stdev(src1, length1)
+upper1 = basis1 + dev1
+lower1 = basis1 - dev1
+
+// ** Triggers and Guards ** //
+// v1 Strategy Parameters
+RSILowerLevel1 = 42
+RSIUpperLevel1 = 70
+BBBuyTrigger1 = src1 < lower1
+BBSellTrigger1 = src1 > upper1
+rsiBuyGuard1 = rsi < RSILowerLevel1
+rsiSellGuard1 = rsi > RSIUpperLevel1
+
+// ** Strategy Signals ** //
+// v1 Signals
+Buy_1 = BBBuyTrigger1 and rsiBuyGuard1
+Sell_1 = BBSellTrigger1 and rsiSellGuard1
+
+if v1
+    if Buy_1
+        strategy.entry("Long", strategy.long)
+        alertMessage := '{"chart": "' + syminfo.ticker + '", "alert": "Buy Signal", "price": "' + tostring(close) + '"}'
+        alert(alertMessage, alert.freq_once_per_bar_close)
+    if Sell_1
+        strategy.close("Long")
+        alertMessage := '{"chart": "' + syminfo.ticker + '", "alert": "Close Signal", "price": "' + tostring(close) + '"}'
+        alert(alertMessage, alert.freq_once_per_bar_close)
