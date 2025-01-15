@@ -55,7 +55,7 @@ async def main():
         await check_file_and_send_message()  # Überprüfen und Nachricht senden, wenn Text vorhanden ist
         clear_message()
         print('Waiting...')
-        await asyncio.sleep(100)  # FetchIntervall
+        await asyncio.sleep(50)  # FetchIntervall
 
 # Starten des asynchronen Programms
 if __name__ == "__main__":

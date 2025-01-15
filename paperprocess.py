@@ -2,6 +2,8 @@ import json
 import time
 import requests
 
+message_file = 'message.txt'
+
 def get_current_price(market):
     url = "https://api.binance.com/api/v3/ticker/price"
     params = {
@@ -43,6 +45,7 @@ def process_trades():
                     trade["exit_price"] = take_profit
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Take-Profit erreicht: {trade}")
+                    write_message(text = f"Take-Profit erreicht: {trade}")
 
                 elif (trade_type == "long" and current_price <= stop_loss) or \
                      (trade_type == "short" and current_price >= stop_loss):
@@ -55,6 +58,7 @@ def process_trades():
                     trade["exit_price"] = stop_loss
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Stop-Loss erreicht: {trade}")
+                    write_message(text = f"Stop-Loss erreicht: {trade}")
 
             updated_trades.append(trade)
 
@@ -69,6 +73,15 @@ def process_trades():
         print("JSON-Datei nicht gefunden.")
     except Exception as e:
         print("Fehler:", e)
+        
+def write_message(text):
+    file_path = message_file
+    try:
+        with open(file_path, 'a') as file:
+            file.write(text)
+            print(f"Message written to file: {text}")
+    except Exception as e:
+        print(f"Fehler beim Schreiben in die Datei: {e}")
 
 # Trades regelmäßig prüfen
 while True:
