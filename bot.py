@@ -17,6 +17,7 @@ from ordervalues import increase_value, reset_value, read_value, decrease_value
 from telegram import Bot
 from telegram.request import HTTPXRequest
 import asyncio
+from paper import add_trade, get_paper_balance
 
 
 # Definiere mögliche Optionen
@@ -139,7 +140,8 @@ def main():
                 choices = [
                     '1. Binance',
                     '2. Alpaca',
-                    '3. Bitget'
+                    '3. Bitget',
+                    '4. Papertrading'
                     ],
             ).execute()
             if choice == '1. Binance':
@@ -152,6 +154,9 @@ def main():
                 print(f'Api Mode changed to {botstatus}')
             elif choice == '3. Bitget':
                 set_status('Bitget')
+                print(f'Api Mode changed to {botstatus}')
+            elif choice == '4. Papertrading':
+                set_status('Papertrading')
                 print(f'Api Mode changed to {botstatus}')
         elif choice == '5. Change Strategy':
             choice = inquirer.select(
@@ -345,6 +350,9 @@ def get_futures_balance():
                 print(f"Asset: {balance['asset']}, Balance: {balance['balance']}")
         except Exception as e:
             print(f"Fehler beim Abrufen des Futures-Guthabens: {e}")
+            
+       
+    
 
 def binance_open_long_position(coin, stoploss, price):
     connection = connect_to_binance(guthabenabfrage=False)
@@ -634,6 +642,25 @@ def bitget_open_long_position(coin, stoploss, price):
     return
 def bitget_open_short_position(coin, stoploss, price):
     return
+
+def calc_coin_amount(type, price, stoploss):
+
+    balance = get_paper_balance()
+    risk_amount_usd = balance * 0.05
+
+    if type == "long":
+        coin_amount = risk_amount_usd / (price - stoploss)
+    elif type == "short":
+        coin_amount = risk_amount_usd / (stoploss - price)
+
+    # Sicherstellen, dass coin_amount das Risikokapital nicht überschreitet
+    if coin_amount * price > balance:
+        coin_amount = (balance - risk_amount_usd) / price
+
+    return coin_amount
+
+    
+
 #Flask Functions
 def start_server():
     app.run(host='::', port=80)
@@ -743,6 +770,34 @@ def process_data():
                         long = alpaca_open_long_position(coin = chart, price = price, stoploss = None)
                         sucess = long[1]
                         if sucess == True:
+                            increase_value(file_path)
+                            write_message(text=f'Opening Trade on {chart} at {price}$.')
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
+                            
+            if all([alert == "Buy Signal",
+                    botstatus == "Papertrading",
+                    strategy == "BBW"
+                    ]):
+                        sl = float(received_data.get('sl'))
+                        tp = float(received_data.get('tp'))
+                        qty = calc_coin_amount(type = 'long', price = price, stoploss = sl)
+                        long = add_trade(market = chart, trade_type = 'long', entry_price = price, quantity = qty, take_profit = tp, stop_loss = sl)
+                        if long == True:
+                            increase_value(file_path)
+                            write_message(text=f'Opening Trade on {chart} at {price}$.')
+                        else:
+                            print(colored('Order konnte nicht erstellt werden, warte auf weitere Signale', 'light_red'))
+                        
+            if all([alert == "Sell Signal",
+                    botstatus == "Papertrading",
+                    strategy == "BBW"
+                    ]):
+                        sl = float(received_data.get('sl'))
+                        tp = float(received_data.get('tp'))
+                        qty = calc_coin_amount(type = 'short',price = price, stoploss = sl)
+                        short = add_trade(market = chart, trade_type = 'short', entry_price = price, quantity = qty, take_profit = tp, stop_loss = sl)
+                        if short == True:
                             increase_value(file_path)
                             write_message(text=f'Opening Trade on {chart} at {price}$.')
                         else:

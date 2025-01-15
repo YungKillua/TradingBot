@@ -24,12 +24,28 @@ def add_trade(market, trade_type, entry_price, quantity, take_profit, stop_loss)
 
         with open("trade_data.json", "w") as file:
             json.dump(data, file, indent=4)
-
+        return True
+        
         print(f"Neuer Trade hinzugefügt: {new_trade}")
     except FileNotFoundError:
         print("JSON-Datei nicht gefunden.")
     except Exception as e:
         print("Fehler:", e)
+        
+def get_paper_balance():
+    try:
+        with open("trade_data.json", "r") as file:
+            data = json.load(file)
+            balance = data['balance']
+        return balance
+    
+    except FileNotFoundError:
+        print("JSON-Datei nicht gefunden.")
+    except Exception as e:
+        print("Fehler:", e)
+        
+    
+    
 
 # Beispielaufruf
 #add_trade("SOLUSD", "long", 186, 5, 190, 182)
