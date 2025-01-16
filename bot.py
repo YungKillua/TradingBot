@@ -704,7 +704,7 @@ def process_data():
         alert = received_data.get('alert')
         price = float(received_data.get('price'))
         
-        orders = get_orders()
+        orders = read_value(file_path)
         if orders < 4 :
         
             #BUY
