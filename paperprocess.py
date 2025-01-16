@@ -1,8 +1,9 @@
 import json
 import time
 import requests
+from ordervalues import decrease_value
+import tabulate
 
-message_file = 'message.txt'
 
 def get_current_price(market):
     url = "https://api.binance.com/api/v3/ticker/price"
@@ -11,11 +12,13 @@ def get_current_price(market):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    print(f"Preis {market}: {data['price']}")
+    #print(f"Preis {market}: {data['price']}")
     return float(data['price'])
 
 def process_trades():
-    print('Checking open trades...')
+    
+    filepath = 'counter.json'
+    
     try:
         with open("trade_data.json", "r") as file:
             data = json.load(file)
@@ -45,6 +48,7 @@ def process_trades():
                     trade["exit_price"] = take_profit
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Take-Profit erreicht: {trade}")
+                    decrease_value(filepath)
                     write_message(text = f"Take-Profit erreicht: {trade}")
 
                 elif (trade_type == "long" and current_price <= stop_loss) or \
@@ -58,6 +62,7 @@ def process_trades():
                     trade["exit_price"] = stop_loss
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Stop-Loss erreicht: {trade}")
+                    decrease_value(filepath)
                     write_message(text = f"Stop-Loss erreicht: {trade}")
 
             updated_trades.append(trade)
@@ -67,6 +72,8 @@ def process_trades():
         data["trades"] = updated_trades
         with open("trade_data.json", "w") as file:
             json.dump(data, file, indent=4)
+            
+        return data
 
         print(f"Aktuelle Balance: {balance:.2f}")
     except FileNotFoundError:
@@ -75,16 +82,56 @@ def process_trades():
         print("Fehler:", e)
         
 def write_message(text):
-    file_path = message_file
+    file_path = 'message.txt'
     try:
         with open(file_path, 'a') as file:
             file.write(text)
             print(f"Message written to file: {text}")
     except Exception as e:
         print(f"Fehler beim Schreiben in die Datei: {e}")
+        
+# Funktion: Trades im Terminal anzeigen
+def display_trades(trades):
+    
+    for trade in trades['trades']:
+        market = trade['market'] + 'T'
+        current_price = get_current_price(market)
+    
+    headers = ["ID", "Pair", "Type", "Entry", "Exit", "TP", "SL", "Qty", "PnL", "Open", "Processed", "Price"]
+    table = [
+        [
+            trade["trade_id"],
+            trade["market"],
+            trade["trade_type"],
+            trade["entry_price"],
+            trade["exit_price"],
+            trade["take_profit"],
+            trade["stop_loss"],
+            trade["quantity"],
+            trade["pnl"],
+            trade["open"],
+            trade["processed"],
+            current_price
+        ]
+        for trade in trades["trades"]
+    ]
+    print(tabulate.tabulate(table, headers, tablefmt="grid"))
+    
+    print(f"\nAktuelle Balance: {round(trades['balance'], 2)} USD")
+    
+def main():
 
-# Trades regelmäßig prüfen
-while True:
-    process_trades()
-    time.sleep(2)
+    while True:
 
+        # Trades verarbeiten
+        trades = process_trades()
+        # Trades anzeigen
+        print("\033c", end="")  # Terminal löschen
+        print("Aktuelle Trades:")
+        display_trades(trades)
+
+        # Wartezeit vor der nächsten Iteration
+        time.sleep(2)
+
+if __name__ == "__main__":
+    main()
