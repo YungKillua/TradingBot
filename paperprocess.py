@@ -90,34 +90,47 @@ def write_message(text):
     except Exception as e:
         print(f"Fehler beim Schreiben in die Datei: {e}")
         
-# Funktion: Trades im Terminal anzeigen
 def display_trades(trades):
-    
-    for trade in trades['trades']:
-        market = trade['market'] + 'T'
-        current_price = get_current_price(market)
-    
+    # Filtere nur offene Trades
+    open_trades = [trade for trade in trades["trades"] if trade["open"]]
+
+    # Wenn keine offenen Trades vorhanden sind, zeige eine entsprechende Nachricht an
+    if not open_trades:
+        print("Keine offenen Trades vorhanden.")
+        print(f"\nAktuelle Balance: {round(trades['balance'], 2)} USD")
+        return
+
     headers = ["ID", "Pair", "Type", "Entry", "Exit", "TP", "SL", "Qty", "PnL", "Open", "Processed", "Price"]
-    table = [
-        [
+    table = []
+
+    for trade in open_trades:
+        market = trade['market'] + 'T'
+        try:
+            current_price = get_current_price(market)
+        except Exception as e:
+            current_price = "Error"  # Fehler beim Abrufen des Preises abfangen
+            print(f"Fehler beim Abrufen des Preises für {market}: {e}")
+
+        # Erstelle die Zeile für die Tabelle
+        table.append([
             trade["trade_id"],
             trade["market"],
             trade["trade_type"],
             trade["entry_price"],
-            trade["exit_price"],
+            trade.get("exit_price", "-"),  # Exit-Preis optional anzeigen
             trade["take_profit"],
             trade["stop_loss"],
             trade["quantity"],
-            trade["pnl"],
+            trade.get("pnl", "-"),  # PnL optional anzeigen
             trade["open"],
             trade["processed"],
             current_price
-        ]
-        for trade in trades["trades"]
-    ]
+        ])
+
+    # Tabelle drucken
     print(tabulate.tabulate(table, headers, tablefmt="grid"))
-    
     print(f"\nAktuelle Balance: {round(trades['balance'], 2)} USD")
+
     
 def main():
 
