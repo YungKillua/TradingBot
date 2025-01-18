@@ -48,9 +48,12 @@ def process_trades():
                     trade["exit_price"] = take_profit
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Take-Profit erreicht: {trade}")
+                    percentage = ((trade['exit_price']-trade['entry_price'])/trade['entry_price'])*100
                     decrease_value(filepath)
-                    write_message(text = f"Take-Profit erreicht: {trade}")
-
+                    if trade_type == 'long':
+                        write_message(text = f"Take-Profit erreicht: {trade['market']} is up to {trade['exit_price']}! Percentage is {percentage}% ")
+                    if trade_type == 'short':
+                        write_message(text = f"Take-Profit erreicht: {trade['market']} is down to {trade['exit_price']}! Percentage is {percentage}% ")
                 elif (trade_type == "long" and current_price <= stop_loss) or \
                      (trade_type == "short" and current_price >= stop_loss):
                     # Stop-Loss erreicht
@@ -62,9 +65,12 @@ def process_trades():
                     trade["exit_price"] = stop_loss
                     trade["pnl"] = round(pnl - fee, 2)
                     print(f"Stop-Loss erreicht: {trade}")
+                    percentage = ((trade['exit_price']-trade['entry_price'])/trade['entry_price'])*100
                     decrease_value(filepath)
-                    write_message(text = f"Stop-Loss erreicht: {trade}")
-
+                    if trade_type == 'long':
+                        write_message(text = f"Stop-Loss erreicht: {trade['market']} is down to {trade['exit_price']}! Percentage is {percentage}% ")
+                    if trade_type == 'short':
+                        write_message(text = f"Stop-Loss erreicht: {trade['market']} is up to {trade['exit_price']}! Percentage is {percentage}% ")
             updated_trades.append(trade)
 
         # Ergebnisse speichern
