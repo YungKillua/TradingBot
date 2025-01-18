@@ -29,15 +29,23 @@ async def send_telegram_message(message, image_path):
 # Funktion zum Überprüfen der Datei, Senden einer Nachricht und Bereinigen der Datei
 async def check_file_and_send_message():
     file_path = message_file
+    status = "Waiting for message..."
     
     try:
         with open(file_path, 'r') as file:
             content = file.read().strip()
             if content:
                 await send_telegram_message(content, image_path)
+                status = "Nachricht gesendet!"
+            else:
+                status = "Waiting for message..."
 
     except Exception as e:
         print(f"Fehler beim Lesen oder Bereinigen der Datei: {e}")
+        
+     # Dynamische Konsolenausgabe
+    print(f"\rStatus: {status}", end="", flush=True)
+    
 
 def clear_message():
     file_path = message_file
@@ -54,10 +62,10 @@ async def main():
     while True:
         await check_file_and_send_message()  # Überprüfen und Nachricht senden, wenn Text vorhanden ist
         clear_message()
-        print('Waiting...')
-        await asyncio.sleep(50)  # FetchIntervall
+        await asyncio.sleep(1)  # FetchIntervall
 
 # Starten des asynchronen Programms
 if __name__ == "__main__":
+    print("Starte Skript...\n")
     asyncio.run(main())
 
