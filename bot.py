@@ -17,7 +17,10 @@ from ordervalues import increase_value, reset_value, read_value, decrease_value
 from telegram import Bot
 from telegram.request import HTTPXRequest
 import asyncio
-from paper import add_trade, get_paper_balance
+from paper import add_trade, get_paper_balance, get_open_trades
+import logging
+
+
 
 
 # Definiere mögliche Optionen
@@ -704,7 +707,7 @@ def process_data():
         alert = received_data.get('alert')
         price = float(received_data.get('price'))
         
-        orders = read_value(file_path)
+        orders = get_open_trades()
         if orders < 4 :
         
             #BUY
